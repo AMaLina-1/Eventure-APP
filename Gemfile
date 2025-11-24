@@ -59,6 +59,9 @@ gem 'rack-session', '~> 0'
 gem 'roda', '~> 3.0'
 gem 'slim', '~> 4.0'
 
+# Appilication Layer
+gem 'rack-cache'
+
 # Database
 gem 'hirb'
 gem 'sequel', '~> 5.0'
