@@ -16,6 +16,12 @@ group :test do
   gem 'simplecov', '~> 0'
   gem 'vcr', '~> 6'
   gem 'webmock', '~> 3'
+
+  # Acceptance Tests
+  gem 'headless', '~> 2.0'
+  gem 'page-object', '~> 2.0'
+  gem 'selenium-webdriver', '~> 4.0'
+  gem 'watir', '~> 7.0'
 end
 
 # Development
@@ -33,6 +39,11 @@ end
 gem 'figaro', '~> 1.0'
 gem 'pry'
 gem 'rake'
+
+# PRESENTATION LAYER
+gem 'multi_json', '~> 1.15'
+gem 'ostruct', '~> 0.0'
+gem 'roar', '~> 1.1'
 
 # Validation
 gem 'dry-struct', '~> 1.0'
