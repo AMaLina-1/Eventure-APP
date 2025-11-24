@@ -5,4 +5,3 @@ coverage/*
 db/local/*.db
 !db/local/.gitkeep
 .bundle/
-_cache/
