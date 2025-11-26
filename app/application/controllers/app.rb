@@ -8,6 +8,8 @@ require_relative '../../presentation/view_objects/filter'
 require_relative '../../presentation/view_objects/filter_option'
 require_relative '../services/filtered_activities'
 require_relative '../services/update_like_counts'
+require_relative '../services/searched_activities'
+require_relative '../forms/keyword_input'
 
 module Eventure
   class App < Roda
@@ -84,6 +86,27 @@ module Eventure
             result = result.value!
             @filtered_activities = result[:filtered_activities]
             show_activities(result[:all_activities])
+          end
+        end
+
+        # 新增：GET /activities/search?keyword=xxx
+        routing.get 'search' do
+          # 1) 用 form 做 validation（這裡照老師 pattern：把 form result 直接丟進 service）
+          form_result = Eventure::Forms::KeywordInput.new.call(
+            keyword: routing.params['keyword']
+          )
+
+          result = Eventure::Service::SearchedActivities.new.call(form_result)
+
+          # 2) form 或 service 任一失敗，都在這裡處理
+          if result.failure?
+            flash[:error] = result.failure
+            routing.redirect '/activities'
+          else
+            search_result = result.value!  # 期望是 { filtered_activities:, all_activities: } 的 Hash
+
+            @filtered_activities = search_result[:filtered_activities]
+            show_activities(search_result[:all_activities])
           end
         end
 
