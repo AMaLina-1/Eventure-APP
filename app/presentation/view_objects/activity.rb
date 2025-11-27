@@ -40,27 +40,52 @@ module Views
     end
 
     def tag_ids
-      @activity.tags.map(&:tag_id)
+      Array(@activity.tags).map { |t| t.respond_to?(:tag_id) ? t.tag_id : nil }.compact
     end
 
     def tags
-      @activity.tags.map(&:tag)
+      Array(@activity.tags).map { |t| t.respond_to?(:tag) ? t.tag : t.to_s }
     end
 
     def relate_data_title
-      @activity.relate_data.map(&:relate_title)
+      Array(@activity.relate_data).map { |r| r.respond_to?(:relate_title) ? r.relate_title : nil }.compact
     end
 
     def relate_data_url
-      @activity.relate_data.map(&:relate_url)
+      Array(@activity.relate_data).map { |r| r.respond_to?(:relate_url) ? r.relate_url : nil }.compact
     end
 
     def start_date
-      @activity.activity_date.start_time
+      val = @activity.activity_date.start_time
+      return val if val.nil?
+
+      # If API returns a String, try parsing to DateTime; if it's already a Time/DateTime, return as is.
+      if val.is_a?(String)
+        begin
+          require 'date'
+          DateTime.parse(val)
+        rescue StandardError
+          nil
+        end
+      else
+        val
+      end
     end
 
     def end_date
-      @activity.activity_date.end_time
+      val = @activity.activity_date.end_time
+      return val if val.nil?
+
+      if val.is_a?(String)
+        begin
+          require 'date'
+          DateTime.parse(val)
+        rescue StandardError
+          nil
+        end
+      else
+        val
+      end
     end
 
     def duration

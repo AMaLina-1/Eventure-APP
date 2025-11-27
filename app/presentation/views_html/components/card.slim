@@ -3,8 +3,12 @@
 	.card-body.flex-grow-1
 		- title = card.name
 		h5.card-title = title
-		- start = card.start_date.strftime('%Y-%m-%d %H:%M')
-		p.card-text.text-muted = "活動日期：#{start}"
+		- if card.start_date
+			- start = card.start_date.strftime('%Y-%m-%d %H:%M')
+			p.card-text.text-muted = "活動日期：#{start}"
+		else
+			p.card-text.text-muted = "活動日期：未提供"
+		end
 		- location = card.location
 		p.card-text.text-muted = "活動地點：#{location}"
 		- tag = card.tags
