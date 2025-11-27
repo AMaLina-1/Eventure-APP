@@ -5,6 +5,7 @@ require 'json'
 
 module Eventure
   module Gateway
+    # Infrastructure to call Eventure API
     class Api
       def initialize(config)
         @config  = config
@@ -12,7 +13,7 @@ module Eventure
       end
 
       def alive?
-        @request.get_root.success?
+        @request.api_root.success?
       end
 
       # GET /api/v1/activities
@@ -118,10 +119,15 @@ module Eventure
 
       # 統一包裝 HTTP response
       class Response < SimpleDelegator
+        NotFound = Class.new(StandardError)
         SUCCESS_CODES = (200..299)
 
         def success?
           code.between?(SUCCESS_CODES.first, SUCCESS_CODES.last)
+        end
+
+        def message
+          payload['message']
         end
 
         def payload
