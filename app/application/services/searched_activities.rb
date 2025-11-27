@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'dry/transaction'
+require 'json'
 
 module Eventure
   module Service
@@ -29,16 +30,34 @@ module Eventure
       def request_activities(input)
         keyword = input[:keyword]
 
-        result = Eventure::Gateway::Api.new(Eventure::App.config)
-                                       .search_activities(keyword)
+        api = Eventure::Gateway::Api.new(Eventure::App.config)
 
-        if result.success?
-          Success(result.payload)
-        else
-          error = Eventure::Representer::HttpResponse
-                  .new(OpenStruct.new)
-                  .from_json(result.payload)
-          Failure(error.message)
+        # Prefer calling API search endpoint if available
+        if api.respond_to?(:search_activities)
+          begin
+            result = api.search_activities(keyword)
+            return Success(result.payload) if result.success?
+          rescue StandardError
+            # fallthrough to local filtering
+          end
+        end
+
+        # Fallback: fetch full activities list and filter locally by keyword
+        list_res = api.activities_list
+        return Failure('Cannot search activities now; please try again later') unless list_res.success?
+
+        begin
+          parsed = JSON.parse(list_res.payload)
+          activities = Array(parsed['activities'] || parsed['data'] || [])
+          filtered = activities.select do |a|
+            txt = [a['name'], a['detail'], a['organizer']].compact.join(' ')
+            txt.include?(keyword)
+          end
+
+          # Representer expects a JSON string like { "activities": [...] }
+          Success({ 'activities' => filtered }.to_json)
+        rescue StandardError
+          Failure('Error parsing activities for search')
         end
       rescue StandardError
         Failure('Cannot search activities now; please try again later')
@@ -50,7 +69,7 @@ module Eventure
           .new(OpenStruct.new)
           .from_json(activities_json)
 
-        Success(Response::ApiResult.new(status: :ok, message: activities_list))
+        Success(activities_list)
       rescue StandardError
         Failure(Response::ApiResult.new(status: :internal_error,
                                         message: 'Error in search result -- please try again'))

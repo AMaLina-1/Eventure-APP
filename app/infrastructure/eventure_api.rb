@@ -133,9 +133,9 @@ module Eventure
 
         def payload
           body.to_s
-        #   JSON.parse(body.to_s)
-        # rescue JSON::ParserError
-        #   {}
+          #   JSON.parse(body.to_s)
+          # rescue JSON::ParserError
+          #   {}
         end
       end
     end

@@ -123,21 +123,25 @@ module Eventure
 
         # 新增：GET /activities/search?keyword=xxx
         routing.get 'search' do
-          # 1) 用 form 做 validation（這裡照老師 pattern：把 form result 直接丟進 service）
-          form_result = Eventure::Forms::KeywordInput.new.call(
-            keyword: routing.params['keyword']
-          )
-
-          result = Eventure::Service::SearchedActivities.new.call(form_result)
+          # 1) 直接把 keyword 以 Hash 傳給 service（Dry::Transaction 期望 Hash 輸入）
+          result = Eventure::Service::SearchedActivities.new.call(keyword: routing.params['keyword'])
 
           # 2) form 或 service 任一失敗，都在這裡處理
           if result.failure?
             flash[:error] = result.failure
             routing.redirect '/activities'
           else
-            search_result = result.value! # 期望是 { filtered_activities:, all_activities: } 的 Hash
+            activities_list = result.value!
 
-            @filtered_activities = search_result[:filtered_activities]
+            # 如果 service 回傳的是 Representer::ActivityList（有 .activities），把它轉換為 view 預期的 OpenStruct 格式
+            @filtered_activities = if activities_list.respond_to?(:activities)
+                                     Array(activities_list.activities).map { |a| map_api_activity(a) }
+                                   elsif activities_list.is_a?(Hash)
+                                     activities_list[:filtered_activities] || activities_list['filtered_activities'] || []
+                                   else
+                                     []
+                                   end
+
             show_activities
           end
         end
@@ -231,6 +235,35 @@ module Eventure
           likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
         )
       end
+    end
+
+    # Map a raw activity (from API representer) to the view OpenStruct shape
+    def map_api_activity(a)
+      raw_tags = a.respond_to?(:tag) ? a.tag : []
+      tags = Array(raw_tags).map do |t|
+        value = if t.is_a?(Hash)
+                  t['tag'] || t[:tag]
+                elsif t.respond_to?(:tag)
+                  t.tag
+                else
+                  t
+                end
+        OpenStruct.new(tag: value)
+      end
+
+      OpenStruct.new(
+        serno: a.respond_to?(:serno) ? a.serno : nil,
+        name: a.respond_to?(:name) ? a.name : nil,
+        location: a.respond_to?(:location) ? a.location : nil,
+        tags: tags,
+        activity_date: OpenStruct.new(
+          start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
+          end_time: nil,
+          duration: nil,
+          status: (a.respond_to?(:status) ? a.status : nil)
+        ),
+        likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
+      )
     end
   end
 end
