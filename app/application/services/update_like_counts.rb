@@ -15,13 +15,11 @@ module Eventure
       private
 
       def validate_like_serno(input)
-        if input.success?
-          serno = input[:serno]
-          user_likes = input[:user_likes]
-          Success(serno:, user_likes:)
-        else
-          Failure(input.errors.values.join('; '))
-        end
+        serno = input[:serno]
+        user_likes = input[:user_likes]
+        Success(serno:, user_likes:)
+      rescue StandardError
+        Failure(input.errors.values.join('; '))
       end
 
       def request_like(input)

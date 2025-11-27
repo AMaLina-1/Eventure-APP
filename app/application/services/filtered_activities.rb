@@ -15,16 +15,14 @@ module Eventure
       private
 
       def validate_filter(input)
-        if input.success?
-          tags = input[:filters][:tag]
-          city = input[:filters][:city]
-          districts = input[:filters][:districts]
-          dates = [input[:filters][:start_date], input[:filters][:end_date]]
-          # end_date = input[:filters][:end_date]
-          Success(tags:, city:, districts:, dates:)
-        else
-          Failure(input.errors.values.join('; '))
-        end
+        tags = input[:filters][:tag]
+        city = input[:filters][:city]
+        districts = input[:filters][:districts]
+        dates = [input[:filters][:start_date], input[:filters][:end_date]]
+        # end_date = input[:filters][:end_date]
+        Success(tags:, city:, districts:, dates:)
+      rescue StandardError
+        Failure(input.errors.values.join('; '))
       end
 
       def request_activity(input)

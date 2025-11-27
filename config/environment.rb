@@ -20,13 +20,5 @@ module Eventure
     def self.config = Figaro.env
 
     use Rack::Session::Cookie, secret: config.SESSION_SECRET
-
-    configure :development, :test do
-      ENV['DATABASE_URL'] = "sqlite://#{config.DB_FILENAME}"
-    end
-
-    # Database Setup
-    @db = Sequel.connect(ENV.fetch('DATABASE_URL'))
-    def self.db = @db # rubocop:disable Style/TrivialAccessors
   end
 end
