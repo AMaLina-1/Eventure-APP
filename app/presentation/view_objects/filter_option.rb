@@ -6,7 +6,7 @@ module Views
   # View for all filter options
   class FilterOption
     def initialize(activities)
-      @activities = activities
+      @activities = activities || []
     end
 
     def tags

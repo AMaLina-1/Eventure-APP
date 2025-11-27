@@ -18,17 +18,51 @@ module Eventure
     plugin :static, ['/assets'], root: 'app/presentation'
     plugin :common_logger, $stdout
     plugin :halt
+    # plugin :hooks
 
+    # ================== Initialize Session ==================
+    # before do
+    #   unless session[:filters_initialized]  # nil for the first time
+    #     session[:filters] = {
+    #       tag: [],
+    #       city: nil,
+    #       districts: [],
+    #       start_date: nil,
+    #       end_date: nil
+    #     }
+    #     result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
+    #     @filtered_activities = result.success? ? result.value![:filtered_activities] : []
+
+    #     session[:filters_initialized] = true
+    #   end
+    # end
+    # ================== Routes ==================
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
+      # ================== Initialize Session ==================
+      # initialize_filtered_activities
+      unless defined?(@filtered_activities) && @filtered_activities
+        session[:filters] ||= {
+          tag: [],
+          city: nil,
+          districts: [],
+          start_date: nil,
+          end_date: nil
+        }
+      end
+      @all_activities = fetched_filtered_activities(session[:filters])
+      @filtered_activities = fetched_filtered_activities(session[:filters])
+      # ================== Routes ==================
       routing.root do
-        if session[:seen_intro_where]
-          routing.redirect '/activities'
-        else
-          session[:seen_intro_where] = true
-          view 'intro_where'
-        end
+        view 'intro_where'
+        # session[:seen_intro_where] = nil
+        # if session[:seen_intro_where]
+        #   routing.redirect '/activities'
+        # else
+        #   session[:seen_intro_where] = true
+        #   view 'intro_where'
+        # end
       end
 
       routing.get 'intro_where' do
@@ -42,14 +76,16 @@ module Eventure
         # 目前只需要這次送來的條件就好
         session[:filters] = filters
 
-        all_activities = Eventure::Repository::Activities.all
+        # all_activities = Eventure::Repository::Activities.all
+        # result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
+        current_activities = fetched_filtered_activities(session[:filters])
 
         # 若有指定 city，只拿該 city 的活動來產生 tag 選單
         activities_for_options =
           if filters[:city] && !filters[:city].empty?
-            all_activities.select { |a| a.city.to_s == filters[:city].to_s }
+            current_activities.select { |a| a.city.to_s == filters[:city].to_s }
           else
-            all_activities
+            current_activities
           end
 
         @current_filters = Views::Filter.new(filters || {})
@@ -77,16 +113,17 @@ module Eventure
       routing.on 'activities' do
         routing.is do
           session[:filters] = extract_filters(routing)
-          result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
+          @filtered_activities = fetched_filtered_activities(session[:filters])
+          # result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
 
-          if result.failure?
-            flash[:error] = result.failure
-            routing.redirect '/activities'
-          else
-            result = result.value!
-            @filtered_activities = result[:filtered_activities]
-            show_activities(result[:all_activities])
-          end
+          # if result.failure?
+          #   flash[:error] = result.failure
+          #   routing.redirect '/activities'
+          # else
+          #   result = result.value!
+          #   @filtered_activities = result[:filtered_activities]
+          show_activities
+          # end
         end
 
         # 新增：GET /activities/search?keyword=xxx
@@ -106,7 +143,7 @@ module Eventure
             search_result = result.value!  # 期望是 { filtered_activities:, all_activities: } 的 Hash
 
             @filtered_activities = search_result[:filtered_activities]
-            show_activities(search_result[:all_activities])
+            show_activities
           end
         end
 
@@ -129,9 +166,9 @@ module Eventure
     end
 
     # ================== Show Activities ==================
-    def show_activities(all)
+    def show_activities
       @current_filters = Views::Filter.new(session[:filters])
-      @filter_options = Views::FilterOption.new(all)
+      @filter_options = Views::FilterOption.new(@all_activities)
       view 'home',
            locals: view_locals.merge(
              liked_sernos: Array(session[:user_likes]).map(&:to_i)
@@ -152,7 +189,7 @@ module Eventure
 
     def view_locals
       {
-        cards: Views::ActivityList.new(@filtered_activities || activities),
+        cards: Views::ActivityList.new(@filtered_activities),
         total_pages: 1,
         current_page: 1
       }
@@ -164,6 +201,15 @@ module Eventure
 
     def service
       @service ||= Eventure::Services::ActivityService.new
+    end
+
+    def fetched_filtered_activities(filters)
+      result = Eventure::Service::FilteredActivities.new.call(filters: filters)
+      return [] if result.failure?
+
+      response_obj = result.value!  # 這裡拿到 Response::ApiResult
+      # Array(response_obj.message[:filtered_activities])
+      Array(response_obj.message)
     end
   end
 end

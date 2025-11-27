@@ -5,29 +5,24 @@ require 'dry/transaction'
 module Eventure
   module Service
     # Transaction to filter activities (input: filters)
-    class FilteredActivities
+    class LikedActivities
       include Dry::Transaction
 
-      step :validate_filter
+      step :validate_serno
       step :request_activity
       step :reify_activity
 
       private
 
-      def validate_filter(input)
-        # tags = input[:filters][:tag]
-        # city = input[:filters][:city]
-        # districts = input[:filters][:districts]
-        # dates = [input[:filters][:start_date], input[:filters][:end_date]]
-        # end_date = input[:filters][:end_date]
-        Success(filters: input[:filters])
+      def validate_serno(input)
+        Success(sernos: input)
       rescue StandardError
         Failure(input.errors.values.join('; '))
       end
 
       def request_activity(input)
         result = Gateway::Api.new(Eventure::App.config)
-          .filtered_activities(filters: input[:filters])
+          .like_activity(input)
 
         result.success? ? Success(result.payload) : Failure(result.message)
       rescue StandardError => e
