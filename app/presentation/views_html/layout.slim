@@ -144,7 +144,7 @@ html
     / 把 districts 的資料放在頁面上，供前端使用（JSON）
     - districts_json = @filter_options&.districts || {}
     script type="application/json" id="districts-data"
-      = districts_json.to_json
+      == districts_json.to_json
 
     script
       | document.addEventListener('DOMContentLoaded', function () {

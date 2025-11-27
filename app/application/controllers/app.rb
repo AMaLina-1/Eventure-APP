@@ -51,8 +51,9 @@ module Eventure
           end_date: nil
         }
       end
-      @all_activities = fetched_filtered_activities(session[:filters])
-      @filtered_activities = fetched_filtered_activities(session[:filters])
+      activities = fetched_filtered_activities(session[:filters])
+      @all_activities = activities
+      @filtered_activities = activities
       # ================== Routes ==================
       routing.root do
         view 'intro_where'
@@ -73,21 +74,14 @@ module Eventure
         # 先把這次帶進來的條件轉成乾淨 hash（包含 filter_city）
         filters = extract_filters(routing) # => { tag: [...], city: '新竹市', ... }
 
-        # 目前只需要這次送來的條件就好
+        # 把本次 filters 存回 session，然後立即依照新的 filters 重新向 API 取得活動列表
         session[:filters] = filters
         puts session[:filters]
 
-        # all_activities = Eventure::Repository::Activities.all
-        # result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
-        current_activities = fetched_filtered_activities(session[:filters])
-        puts current_activities.length
-        # 若有指定 city，只拿該 city 的活動來產生 tag 選單
-        activities_for_options =
-          if filters[:city] && !filters[:city].empty?
-            current_activities.select { |a| a.city.to_s == filters[:city].to_s }
-          else
-            current_activities
-          end
+        # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
+        activities_for_options = fetched_filtered_activities(filters)
+        @all_activities = activities_for_options
+        @filtered_activities = activities_for_options
 
         @current_filters = Views::Filter.new(filters || {})
         @filter_options  = Views::FilterOption.new(activities_for_options)
@@ -141,7 +135,7 @@ module Eventure
             flash[:error] = result.failure
             routing.redirect '/activities'
           else
-            search_result = result.value!  # 期望是 { filtered_activities:, all_activities: } 的 Hash
+            search_result = result.value! # 期望是 { filtered_activities:, all_activities: } 的 Hash
 
             @filtered_activities = search_result[:filtered_activities]
             show_activities
@@ -208,20 +202,33 @@ module Eventure
       result = Eventure::Service::FilteredActivities.new.call(filters: filters)
       return [] if result.failure?
 
-      response_obj = result.value!  # 這裡拿到 Response::ApiResult
+      response_obj = result.value! # 這裡拿到 Response::ApiResult
       response_obj.activities.map do |a|
+        # Normalize tags: support ['t1','t2'] or [{'tag'=>'t1'}, ...]
+        raw_tags = a.respond_to?(:tag) ? a.tag : []
+        tags = Array(raw_tags).map do |t|
+          value = if t.is_a?(Hash)
+                    t['tag'] || t[:tag]
+                  elsif t.respond_to?(:tag)
+                    t.tag
+                  else
+                    t
+                  end
+          OpenStruct.new(tag: value)
+        end
+
         OpenStruct.new(
-          serno: a.serno,
-          name: a.name,
-          location: a.location,
-          tags: (a.tag || []).map { |t| OpenStruct.new(tag: t) },
+          serno: a.respond_to?(:serno) ? a.serno : nil,
+          name: a.respond_to?(:name) ? a.name : nil,
+          location: a.respond_to?(:location) ? a.location : nil,
+          tags: tags,
           activity_date: OpenStruct.new(
-            start_time: a.start_time,
-            end_time: nil,     # 如果沒有提供
+            start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
+            end_time: nil,
             duration: nil,
-            status: a.status
+            status: (a.respond_to?(:status) ? a.status : nil)
           ),
-          likes_count: a.likes_count
+          likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
         )
       end
     end
