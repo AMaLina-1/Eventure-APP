@@ -208,6 +208,7 @@ module Eventure
       return [] if result.failure?
 
       response_obj = result.value!  # 這裡拿到 Response::ApiResult
+      puts response_obj
       # Array(response_obj.message[:filtered_activities])
       Array(response_obj.message)
     end
