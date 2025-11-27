@@ -207,34 +207,7 @@ module Eventure
       return [] if result.failure?
 
       response_obj = result.value! # 這裡拿到 Response::ApiResult
-      response_obj.activities.map do |a|
-        # Normalize tags: support ['t1','t2'] or [{'tag'=>'t1'}, ...]
-        raw_tags = a.respond_to?(:tag) ? a.tag : []
-        tags = Array(raw_tags).map do |t|
-          value = if t.is_a?(Hash)
-                    t['tag'] || t[:tag]
-                  elsif t.respond_to?(:tag)
-                    t.tag
-                  else
-                    t
-                  end
-          OpenStruct.new(tag: value)
-        end
-
-        OpenStruct.new(
-          serno: a.respond_to?(:serno) ? a.serno : nil,
-          name: a.respond_to?(:name) ? a.name : nil,
-          location: a.respond_to?(:location) ? a.location : nil,
-          tags: tags,
-          activity_date: OpenStruct.new(
-            start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
-            end_time: nil,
-            duration: nil,
-            status: (a.respond_to?(:status) ? a.status : nil)
-          ),
-          likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
-        )
-      end
+      response_obj.activities.map { |a| map_api_activity(a) }
     end
 
     # Map a raw activity (from API representer) to the view OpenStruct shape
@@ -255,11 +228,17 @@ module Eventure
         serno: a.respond_to?(:serno) ? a.serno : nil,
         name: a.respond_to?(:name) ? a.name : nil,
         location: a.respond_to?(:location) ? a.location : nil,
+        city: a.city,
+        district: a.district,
+        building: a.building,
+        detail: a.detail,
+        organizer: a.organizer,
+        voice: a.respond_to?(:voice) ? a.voice : nil, 
         tags: tags,
         activity_date: OpenStruct.new(
           start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
-          end_time: nil,
-          duration: nil,
+          end_time: a.end_time,
+          duration: a.duration,
           status: (a.respond_to?(:status) ? a.status : nil)
         ),
         likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
