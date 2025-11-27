@@ -36,7 +36,7 @@ module Eventure
           Success(result.payload)
         else
           error = Eventure::Representer::HttpResponse
-                    .new(OpenStruct.new)
+                  .new(OpenStruct.new)
                   .from_json(result.payload)
           Failure(error.message)
         end
@@ -47,12 +47,13 @@ module Eventure
       def reify_activities(activities_json)
         activities_list =
           Eventure::Representer::ActivityList
-            .new(OpenStruct.new)
+          .new(OpenStruct.new)
           .from_json(activities_json)
 
-        Success(activities_list)
+        Success(Response::ApiResult.new(status: :ok, message: activities_list))
       rescue StandardError
-        Failure('Error in search result -- please try again')
+        Failure(Response::ApiResult.new(status: :internal_error,
+                                        message: 'Error in search result -- please try again'))
       end
     end
   end
