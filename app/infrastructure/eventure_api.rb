@@ -46,6 +46,12 @@ module Eventure
         @request.tags_list
       end
 
+      # GET /api/v1/activities?keyword=...
+      # Provide a gateway-level helper so callers can request server-side search
+      def search_activities(keyword)
+        @request.search_activities(keyword)
+      end
+
       # 實際送 HTTP 的層
       class Request
         def initialize(config)
@@ -81,6 +87,12 @@ module Eventure
 
         def tags_list
           call_api(:get, ['tags'])
+        end
+
+        def search_activities(keyword)
+          params = {}
+          params[:keyword] = keyword if keyword && !keyword.to_s.empty?
+          call_api(:get, ['activities'], params)
         end
 
         private
