@@ -62,7 +62,7 @@ module Eventure
         end
 
         def filtered_activities(filters)
-          body = { filters: filters }.to_json
+          body = filters.to_json
           call_api(:post, ['filter'], {}, body)
         end
 
@@ -99,6 +99,7 @@ module Eventure
           api_path = resources.empty? ? @api_host : @api_root
           url      = ([api_path] + resources).join('/') + params_str(params)
           puts "HTTP RESPONSE BODY: #{url}"
+          puts 'body:' + body.to_s
           http = HTTP.headers(
             'Accept' => 'application/json',
             'Content-Type' => 'application/json'
@@ -110,7 +111,7 @@ module Eventure
             else
               http.public_send(method, url)
             end
-          puts "HTTP RESPONSE BODY: #{response.body.to_s}"
+          # puts "HTTP RESPONSE BODY: #{response.body.to_s}"
           Response.new(response)
         rescue StandardError
           raise "Invalid URL request: #{url}"
@@ -131,9 +132,10 @@ module Eventure
         end
 
         def payload
-          JSON.parse(body.to_s)
-        rescue JSON::ParserError
-          {}
+          body.to_s
+        #   JSON.parse(body.to_s)
+        # rescue JSON::ParserError
+        #   {}
         end
       end
     end

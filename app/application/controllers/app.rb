@@ -75,11 +75,12 @@ module Eventure
 
         # 目前只需要這次送來的條件就好
         session[:filters] = filters
+        puts session[:filters]
 
         # all_activities = Eventure::Repository::Activities.all
         # result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
         current_activities = fetched_filtered_activities(session[:filters])
-
+        puts current_activities.length
         # 若有指定 city，只拿該 city 的活動來產生 tag 選單
         activities_for_options =
           if filters[:city] && !filters[:city].empty?
@@ -208,9 +209,21 @@ module Eventure
       return [] if result.failure?
 
       response_obj = result.value!  # 這裡拿到 Response::ApiResult
-      puts response_obj
-      # Array(response_obj.message[:filtered_activities])
-      Array(response_obj.message)
+      response_obj.activities.map do |a|
+        OpenStruct.new(
+          serno: a.serno,
+          name: a.name,
+          location: a.location,
+          tags: (a.tag || []).map { |t| OpenStruct.new(tag: t) },
+          activity_date: OpenStruct.new(
+            start_time: a.start_time,
+            end_time: nil,     # 如果沒有提供
+            duration: nil,
+            status: a.status
+          ),
+          likes_count: a.likes_count
+        )
+      end
     end
   end
 end

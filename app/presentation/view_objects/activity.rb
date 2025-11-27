@@ -16,7 +16,7 @@ module Views
     end
 
     def detail
-      @activity.detail
+      @activity.detail || ''
     end
 
     def location

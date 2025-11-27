@@ -37,9 +37,11 @@ module Eventure
       end
 
       def reify_activity(activity_json)
-        Representer::ActivityList.new(OpenStruct.new)
+        # puts activity_json
+        activities = Representer::ActivityList.new(OpenStruct.new(activities: []))
           .from_json(activity_json)
-          .then { |activity| Success(activity) }
+          # .then { |activity| Success(activity) }
+        Success(activities)
       rescue StandardError
         Failure('Error in the filtered activities -- please try again')
       end
