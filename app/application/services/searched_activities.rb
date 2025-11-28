@@ -29,36 +29,12 @@ module Eventure
 
       def request_activities(input)
         keyword = input[:keyword]
-
         api = Eventure::Gateway::Api.new(Eventure::App.config)
 
-        # Prefer calling API search endpoint if available
-        if api.respond_to?(:search_activities)
-          begin
-            result = api.search_activities(keyword)
-            return Success(result.payload) if result.success?
-          rescue StandardError
-            # fallthrough to local filtering
-          end
-        end
+        result = api.search_activities(keyword)
+        return Failure('Cannot search activities now; please try again later') unless result.success?
 
-        # Fallback: fetch full activities list and filter locally by keyword
-        list_res = api.activities_list
-        return Failure('Cannot search activities now; please try again later') unless list_res.success?
-
-        begin
-          parsed = JSON.parse(list_res.payload)
-          activities = Array(parsed['activities'] || parsed['data'] || [])
-          filtered = activities.select do |a|
-            txt = [a['name'], a['detail'], a['organizer']].compact.join(' ')
-            txt.include?(keyword)
-          end
-
-          # Representer expects a JSON string like { "activities": [...] }
-          Success({ 'activities' => filtered }.to_json)
-        rescue StandardError
-          Failure('Error parsing activities for search')
-        end
+        Success(result.payload)
       rescue StandardError
         Failure('Cannot search activities now; please try again later')
       end
