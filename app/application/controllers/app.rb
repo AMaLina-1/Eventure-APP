@@ -151,7 +151,7 @@ module Eventure
             serno = result.serno
             session[:user_likes] = result.user_likes
             likes_count = result.likes_count
-            print session[:user_likes].length
+            puts session[:user_likes].length
           end
         end
       end
