@@ -51,6 +51,7 @@ module Eventure
           end_date: nil
         }
       end
+      session[:user_likes] ||= []
       activities = fetched_filtered_activities(session[:filters])
       @all_activities = activities
       @filtered_activities = activities
@@ -76,7 +77,7 @@ module Eventure
 
         # 把本次 filters 存回 session，然後立即依照新的 filters 重新向 API 取得活動列表
         session[:filters] = filters
-        puts session[:filters]
+        # puts session[:filters]
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
         activities_for_options = fetched_filtered_activities(filters)
@@ -109,16 +110,7 @@ module Eventure
         routing.is do
           session[:filters] = extract_filters(routing)
           @filtered_activities = fetched_filtered_activities(session[:filters])
-          # result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
-
-          # if result.failure?
-          #   flash[:error] = result.failure
-          #   routing.redirect '/activities'
-          # else
-          #   result = result.value!
-          #   @filtered_activities = result[:filtered_activities]
           show_activities
-          # end
         end
 
         # 新增：GET /activities/search?keyword=xxx
@@ -149,7 +141,6 @@ module Eventure
         routing.post 'like' do
           response['Content-Type'] = 'application/json'
           serno = routing.params['serno'] || routing.params['serno[]']
-          session[:user_likes] ||= []
 
           result = Service::UpdateLikeCounts.new.call(serno: serno.to_i, user_likes: session[:user_likes])
 
@@ -157,8 +148,10 @@ module Eventure
             flash[:error] = result.failure
           else
             result = result.value!
-            session[:user_likes] = result[:user_likes]
-            { serno: serno.to_i, likes_count: result[:like_counts] }.to_json
+            serno = result.serno
+            session[:user_likes] = result.user_likes
+            likes_count = result.likes_count
+            print session[:user_likes].length
           end
         end
       end

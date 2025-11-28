@@ -27,8 +27,8 @@ module Eventure
       end
 
       # POST /api/v1/activities/like with { serno: ... }
-      def like_activity(serno)
-        @request.like_activity(serno)
+      def like_activity(sent_hash)
+        @request.like_activity(sent_hash)
       end
 
       # GET /api/v1/cities
@@ -72,8 +72,8 @@ module Eventure
           call_api(:post, ['filter'], {}, body)
         end
 
-        def like_activity(serno)
-          body = { serno: serno }.to_json
+        def like_activity(sent_hash)
+          body = sent_hash.to_json
           call_api(:post, %w[activities like], {}, body)
         end
 
