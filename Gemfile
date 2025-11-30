@@ -63,13 +63,5 @@ gem 'slim', '~> 4.0'
 gem 'hirb'
 gem 'sequel', '~> 5.0'
 
-group :development, :test do
-  gem 'sqlite3', '~> 1.0'
-end
-
-group :production do
-  gem 'pg'
-end
-
 # Controllers and services
 gem 'dry-monads', '~> 1.0'
