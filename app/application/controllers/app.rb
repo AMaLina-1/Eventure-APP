@@ -18,6 +18,7 @@ module Eventure
     plugin :static, ['/assets'], root: 'app/presentation'
     plugin :common_logger, $stdout
     plugin :halt
+    plugin :caching
     # plugin :hooks
 
     # ================== Initialize Session ==================
@@ -40,6 +41,10 @@ module Eventure
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
+      if App.environment == :production
+        response.cache_control public: true, max_age: 300
+      end
+
       # ================== Initialize Session ==================
       # initialize_filtered_activities
       unless defined?(@filtered_activities) && @filtered_activities
@@ -57,6 +62,9 @@ module Eventure
       @filtered_activities = activities
       # ================== Routes ==================
       routing.root do
+        App.configure :production do
+          response.expire 300, public: true
+        end
         view 'intro_where'
         # session[:seen_intro_where] = nil
         # if session[:seen_intro_where]
@@ -68,6 +76,9 @@ module Eventure
       end
 
       routing.get 'intro_where' do
+        App.configure :production do
+          response.expire 300, public: true
+        end
         view 'intro_where'
       end
 
