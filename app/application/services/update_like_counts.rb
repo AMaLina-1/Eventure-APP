@@ -38,7 +38,6 @@ module Eventure
       def reify_like(liked_json)
         like_info = Representer::ActivityLike.new(OpenStruct.new)
           .from_json(liked_json)
-          # .then { |liked| Success(liked) }
         Success(like_info)
       rescue StandardError
         Failure('Error in liked/disliked activity -- please try again')

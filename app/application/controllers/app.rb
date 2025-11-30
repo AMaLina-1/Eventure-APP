@@ -19,24 +19,7 @@ module Eventure
     plugin :common_logger, $stdout
     plugin :halt
     plugin :caching
-    # plugin :hooks
-
-    # ================== Initialize Session ==================
-    # before do
-    #   unless session[:filters_initialized]  # nil for the first time
-    #     session[:filters] = {
-    #       tag: [],
-    #       city: nil,
-    #       districts: [],
-    #       start_date: nil,
-    #       end_date: nil
-    #     }
-    #     result = Eventure::Service::FilteredActivities.new.call(filters: session[:filters])
-    #     @filtered_activities = result.success? ? result.value![:filtered_activities] : []
-
-    #     session[:filters_initialized] = true
-    #   end
-    # end
+    
     # ================== Routes ==================
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
@@ -46,7 +29,6 @@ module Eventure
       end
 
       # ================== Initialize Session ==================
-      # initialize_filtered_activities
       unless defined?(@filtered_activities) && @filtered_activities
         session[:filters] ||= {
           tag: [],
@@ -63,16 +45,9 @@ module Eventure
       # ================== Routes ==================
       routing.root do
         App.configure :production do
-          response.expire 300, public: true
+          response.expires 300, public: true
         end
         view 'intro_where'
-        # session[:seen_intro_where] = nil
-        # if session[:seen_intro_where]
-        #   routing.redirect '/activities'
-        # else
-        #   session[:seen_intro_where] = true
-        #   view 'intro_where'
-        # end
       end
 
       routing.get 'intro_where' do
@@ -88,7 +63,6 @@ module Eventure
 
         # 把本次 filters 存回 session，然後立即依照新的 filters 重新向 API 取得活動列表
         session[:filters] = filters
-        # puts session[:filters]
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
         activities_for_options = fetched_filtered_activities(filters)
@@ -195,14 +169,6 @@ module Eventure
         total_pages: 1,
         current_page: 1
       }
-    end
-
-    def activities
-      @activities ||= Eventure::Repository::Activities.all
-    end
-
-    def service
-      @service ||= Eventure::Services::ActivityService.new
     end
 
     def fetched_filtered_activities(filters)

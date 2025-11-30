@@ -15,11 +15,6 @@ module Eventure
       private
 
       def validate_filter(input)
-        # tags = input[:filters][:tag]
-        # city = input[:filters][:city]
-        # districts = input[:filters][:districts]
-        # dates = [input[:filters][:start_date], input[:filters][:end_date]]
-        # end_date = input[:filters][:end_date]
         Success(filters: input[:filters])
       rescue StandardError
         Failure(input.errors.values.join('; '))
@@ -37,10 +32,8 @@ module Eventure
       end
 
       def reify_activity(activity_json)
-        # puts activity_json
         activities = Representer::ActivityList.new(OpenStruct.new(activities: []))
           .from_json(activity_json)
-          # .then { |activity| Success(activity) }
         Success(activities)
       rescue StandardError
         Failure('Error in the filtered activities -- please try again')
