@@ -7,16 +7,16 @@ module Views
   class ActivityList
     include Enumerable
 
-    def initialize(activites)
-      @activites = activites.map { |activity| Activity.new(activity) }
+    def initialize(activities)
+      @activities = (activities || []).map { |activity| Activity.new(activity) }
     end
 
     def any?
-      @activites.any?
+      @activities.any?
     end
 
     def each(&block)
-      @activites.each { |activity| block.call(activity) } if block
+      @activities.each { |activity| block.call(activity) } if block
     end
   end
 end

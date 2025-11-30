@@ -41,8 +41,8 @@ html
               a.nav-link.active aria-current="page" href="/like"
                 i.bi.bi-suit-heart-fill.me-1.text-danger aria-hidden="true"
                 | Like
-          form.d-flex role="search"
-            input.form-control.me-2 type="search" placeholder="Search" aria-label="Search"
+          form.d-flex role="search" method="get" action="/activities/search"
+            input.form-control.me-2 type="search" name="keyword" placeholder="Search" aria-label="Search"
             button.btn.btn-outline-success type="submit" Search
 
     .container#html_body.mt-4
@@ -144,7 +144,7 @@ html
     / 把 districts 的資料放在頁面上，供前端使用（JSON）
     - districts_json = @filter_options&.districts || {}
     script type="application/json" id="districts-data"
-      = districts_json.to_json
+      == districts_json.to_json
 
     script
       | document.addEventListener('DOMContentLoaded', function () {

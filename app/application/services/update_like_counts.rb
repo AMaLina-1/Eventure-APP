@@ -8,39 +8,39 @@ module Eventure
     class UpdateLikeCounts
       include Dry::Transaction
 
-      step :fetch_activity
-      step :update_like_session
-      step :save_like_db
+      step :validate_like_serno
+      step :request_like
+      step :reify_like
 
       private
 
-      def fetch_activity(input)
-        input[:activity] = Eventure::Repository::Activities.find_serno(input[:serno])
-        if input[:activity]
-          Success(input)
-        else
-          Failure('Activity not found')
-        end
+      def validate_like_serno(input)
+        serno = input[:serno]
+        user_likes = input[:user_likes]
+        Success(serno:, user_likes:)
+      rescue StandardError
+        Failure(input.errors.values.join('; '))
       end
 
-      def update_like_session(input)
-        if input[:user_likes].include?(input[:serno])
-          input[:activity].remove_likes
-          input[:user_likes].delete(input[:serno])
-        else
-          input[:activity].add_likes
-          input[:user_likes] << input[:serno]
-        end
-        Success(input)
+      def request_like(input)
+        sent_hash = { serno: input[:serno], user_likes: input[:user_likes] }
+        result = Gateway::Api.new(Eventure::App.config)
+          .like_activity(sent_hash)
+        puts 'result: ', result
+
+        result.success? ? Success(result.payload) : Failure(result.message)
       rescue StandardError => e
-        Failure(e.to_s)
+        puts e.inspect
+        puts e.backtrace
+        Failure('Cannot like/dislike an activity right now; please try again later')
       end
 
-      def save_like_db(input)
-        Eventure::Repository::Activities.update_likes(input[:activity])
-        Success(user_likes: input[:user_likes], like_counts: input[:activity].likes_count)
-      rescue StandardError => e
-        Failure("Database failed to update: #{e}")
+      def reify_like(liked_json)
+        like_info = Representer::ActivityLike.new(OpenStruct.new)
+          .from_json(liked_json)
+        Success(like_info)
+      rescue StandardError
+        Failure('Error in liked/disliked activity -- please try again')
       end
     end
   end
