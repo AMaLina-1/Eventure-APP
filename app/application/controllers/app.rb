@@ -87,22 +87,19 @@ module Eventure
         @current_filters = Views::Filter.new(filters || {})
         @filter_options  = Views::FilterOption.new(activities_for_options)
 
-        view 'intro_tag',
-             locals: view_locals.merge(
-               liked_sernos: Array(session[:user_likes]).map(&:to_i)
-             )
+        view 'intro_tag', locals: view_locals
       end
 
       # ================== Likes page ==================
       routing.get 'like' do
         liked_sernos = Array(session[:user_likes]).map(&:to_i)
-        liked_activities = liked_sernos.map { |serno| Eventure::Repository::Activities.find_serno(serno) }.compact
+        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno) }
 
-        view 'like',
-             locals: view_locals.merge(
-               cards: Views::ActivityList.new(liked_activities),
-               liked_sernos: liked_sernos
-             )
+        @filtered_activities = liked_activities
+        @current_filters = Views::Filter.new(session[:filters] || {})
+        @filter_options  = Views::FilterOption.new(@all_activities || [])
+
+        view 'like', locals: view_locals
       end
 
       # ================== Activities ==================
@@ -161,10 +158,7 @@ module Eventure
     def show_activities
       @current_filters = Views::Filter.new(session[:filters])
       @filter_options = Views::FilterOption.new(@all_activities)
-      view 'home',
-           locals: view_locals.merge(
-             liked_sernos: Array(session[:user_likes]).map(&:to_i)
-           )
+      view 'home', locals: view_locals
     end
 
     # 把 params 換成乾淨 hash
@@ -182,6 +176,10 @@ module Eventure
     def view_locals
       {
         cards: Views::ActivityList.new(@filtered_activities),
+        all_activities: @all_activities,
+        current_filters: @current_filters,
+        filter_options: @filter_options,
+        liked_sernos: Array(session[:user_likes]).map(&:to_i),
         total_pages: 1,
         current_page: 1
       }
