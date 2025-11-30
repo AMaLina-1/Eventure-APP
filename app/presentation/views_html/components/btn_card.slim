@@ -56,17 +56,21 @@ span.like-count.ms-2 = likes
           body: new URLSearchParams({ serno: serno }),
           credentials: 'same-origin'
         })
-        .then(function (resp) { return resp.ok ? resp.json() : Promise.reject(); })
+        .then(function (resp) { 
+          if (!resp.ok) return Promise.reject('Server error');
+          return resp.json();
+        })
         .then(function (data) {
-          if (typeof data.likes_count !== 'undefined') {
-            var newCount = parseInt(data.likes_count, 10) || 0;
-            countSpan.textContent = String(newCount);
-            if (newCount > prevCount) setHeart(icon, true);
-            if (newCount < prevCount) setHeart(icon, false);
-            btn.setAttribute('data-liked', icon.classList.contains('bi-suit-heart-fill') ? 'true' : 'false');
+          if (typeof data.is_liked !== 'undefined') {
+            setHeart(icon, data.is_liked);
+            btn.setAttribute('data-liked', String(data.is_liked));
+          }
+          if (typeof data.likes_count != 'undefined') {
+            countSpan.textContent = String(data.likes_count);
           }
         })
-        .catch(function () {
+        .catch(function (err) {
+          console.error('Like action failed:', err);
           setHeart(icon, wasFilled);
           btn.setAttribute('data-liked', prevLiked);
           countSpan.textContent = String(prevCount);

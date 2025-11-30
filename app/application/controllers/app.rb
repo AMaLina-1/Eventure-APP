@@ -142,12 +142,14 @@ module Eventure
           result = Service::UpdateLikeCounts.new.call(serno: serno.to_i, user_likes: session[:user_likes])
 
           if result.failure?
-            reponse.status = 400
+            response.status = 400
             { error: result.failure }.to_json
           else
             result_value = result.value!
             session[:user_likes] = result_value.user_likes
-            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes] }.to_json
+            # check if this user curreently likes this activity
+            user_likes_this = session[:user_likes].map(&:to_i).include?(serno.to_i)
+            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes], is_liked: user_likes_this }.to_json
           end
         end
       end
