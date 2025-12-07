@@ -7,6 +7,7 @@ require_relative '../../presentation/view_objects/activity_list'
 require_relative '../../presentation/view_objects/filter'
 require_relative '../../presentation/view_objects/filter_option'
 require_relative '../services/filtered_activities'
+require_relative '../services/api_activities'
 require_relative '../services/update_like_counts'
 require_relative '../services/searched_activities'
 require_relative '../forms/keyword_input'
@@ -20,6 +21,31 @@ module Eventure
     plugin :halt
     plugin :caching
     
+    # ================== Initialize Session ==================
+    # configure do
+    #   unless defined?(@filtered_activities) && @filtered_activities
+    #     session[:filters] ||= {
+    #       tag: [],
+    #       city: nil,
+    #       districts: [],
+    #       start_date: nil,
+    #       end_date: nil
+    #     }
+    #   end
+    #   session[:user_likes] ||= []
+    #   # write into database in eventure-api
+    #   result = Eventure::Service::ApiActivities.new.call(total: 100)
+    #   if result.failure?
+    #     flash[:error] = result.failure
+    #     # routing.redirect '/activities'
+    #   else
+    #     flash[:notice] = result.value!
+    #   end
+
+    #   activities = fetched_filtered_activities(session[:filters])
+    #   @all_activities = activities
+    #   @filtered_activities = activities
+    # end
     # ================== Routes ==================
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
@@ -27,8 +53,9 @@ module Eventure
       if App.environment == :production
         response.cache_control public: true, max_age: 300
       end
-
       # ================== Initialize Session ==================
+      puts "has_fetched?: #{session[:has_fetched_activities].inspect}"
+
       unless defined?(@filtered_activities) && @filtered_activities
         session[:filters] ||= {
           tag: [],
@@ -39,9 +66,25 @@ module Eventure
         }
       end
       session[:user_likes] ||= []
-      activities = fetched_filtered_activities(session[:filters])
-      @all_activities = activities
-      @filtered_activities = activities
+      # write into database in eventure-api
+      unless session[:has_fetched_activities]
+        puts "Fetching activities from API..."
+        result = Eventure::Service::ApiActivities.new.call()
+        if result.failure?
+          flash[:error] = result.failure
+          # routing.redirect '/activities'
+        else
+          flash[:notice] = result.value!
+        end
+        session[:has_fetched_activities] = true
+        # activities = fetched_filtered_activities(session[:filters])
+        # @all_activities = activities
+        # @filtered_activities = activities
+        # puts "@all_activities size: #{@all_activities.size}"
+        # puts "@filtered_activities size: #{@filtered_activities.size}"
+      end
+
+      
       # ================== Routes ==================
       routing.root do
         App.configure :production do

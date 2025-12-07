@@ -16,6 +16,10 @@ module Eventure
         @request.api_root.success?
       end
 
+      def fetch_api_activities
+        @request.fetch_api_activities
+      end
+
       # GET /api/v1/activities
       def activities_list
         @request.activities_list
@@ -61,6 +65,10 @@ module Eventure
 
         def api_root
           call_api(:get, [])
+        end
+
+        def fetch_api_activities
+          call_api(:post, [])
         end
 
         def activities_list
