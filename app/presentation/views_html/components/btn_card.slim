@@ -5,8 +5,8 @@
 - serno_val = card.serno
 - id_suffix = card.serno
 
-- liked_list = defined?(liked_sernos) ? Array(liked_sernos).map(&:to_i) : []
-- liked = serno_val && liked_list.include?(serno_val.to_i)
+- liked_list = defined?(liked_sernos) ? Array(liked_sernos).map(&:to_s) : []
+- liked = serno_val && liked_list.include?(serno_val.to_s)
 
 / 「詳細」按鈕
 a.btn.btn-primary.me-2 href="#" role="button" data-bs-toggle="modal" data-bs-target=("#cardModal-#{id_suffix}") 詳細
