@@ -56,36 +56,42 @@ module Eventure
       # ================== Initialize Session ==================
       puts "has_fetched?: #{session[:has_fetched_activities].inspect}"
 
-      unless defined?(@filtered_activities) && @filtered_activities
-        session[:filters] ||= {
-          tag: [],
-          city: nil,
-          districts: [],
-          start_date: nil,
-          end_date: nil
-        }
-      end
+      session[:filters] ||= {
+        tag: [],
+        city: nil,
+        districts: [],
+        start_date: nil,
+        end_date: nil
+      }
       session[:user_likes] ||= []
       # write into database in eventure-api
       unless session[:has_fetched_activities]
         puts "Fetching activities from API..."
         result = Eventure::Service::ApiActivities.new.call()
+        # puts result.value!
         if result.failure?
           flash[:error] = result.failure
           # routing.redirect '/activities'
         else
-          flash[:notice] = result.value!
-        end
-        session[:has_fetched_activities] = true
-        # activities = fetched_filtered_activities(session[:filters])
-        # @all_activities = activities
-        # @filtered_activities = activities
-        # puts "@all_activities size: #{@all_activities.size}"
-        # puts "@filtered_activities size: #{@filtered_activities.size}"
+          flash[:notice] = result.value!.msg # .msg?
+          puts result.value!.msg
+          activities = fetched_filtered_activities(session[:filters])
+          session[:all_activities] = activities
+          session[:filtered_activities] = activities
+          session[:has_fetched_activities] = true unless activities == []
+        end        
+        puts "session[:all_activities] size: #{session[:all_activities]&.length || 0}"
+        puts "session[:filtered_activities] size: #{session[:filtered_activities]&.length || 0}"
       end
 
       
       # ================== Routes ==================
+      routing.get 'clear_session' do
+        session.clear
+        puts 'session cleared'
+        routing.redirect '/'
+      end
+
       routing.root do
         App.configure :production do
           response.expires 300, public: true
@@ -102,6 +108,7 @@ module Eventure
 
       routing.get 'intro_tag' do
         # 先把這次帶進來的條件轉成乾淨 hash（包含 filter_city）
+        puts 'start to extract filters...'
         filters = extract_filters(routing) # => { tag: [...], city: '新竹市', ... }
 
         # 把本次 filters 存回 session，然後立即依照新的 filters 重新向 API 取得活動列表
@@ -109,11 +116,15 @@ module Eventure
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
         activities_for_options = fetched_filtered_activities(filters)
-        @all_activities = activities_for_options
-        @filtered_activities = activities_for_options
+        session[:all_activities] = activities_for_options
+        session[:filtered_activities] = activities_for_options
+        # @all_activities = activities_for_options
+        # @filtered_activities = activities_for_options
 
-        @current_filters = Views::Filter.new(filters || {})
-        @filter_options  = Views::FilterOption.new(activities_for_options)
+        session[:current_filters] = Views::Filter.new(filters || {})
+        session[:filter_options]  = Views::FilterOption.new(activities_for_options)
+        # @current_filters = Views::Filter.new(filters || {})
+        # @filter_options  = Views::FilterOption.new(activities_for_options)
 
         view 'intro_tag', locals: view_locals
       end
@@ -121,11 +132,15 @@ module Eventure
       # ================== Likes page ==================
       routing.get 'like' do
         liked_sernos = Array(session[:user_likes]).map(&:to_i)
-        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno) }
+        # liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno) }
+        liked_activities = session[:all_activities].select { |a| liked_sernos.include?(a.serno) }
 
-        @filtered_activities = liked_activities
-        @current_filters = Views::Filter.new(session[:filters] || {})
-        @filter_options  = Views::FilterOption.new(@all_activities || [])
+        session[ :filtered_activities ] = liked_activities
+        session[ :current_filters ] = Views::Filter.new({})
+        session[ :filter_options ]  = Views::FilterOption.new(session[:all_activities] || [])
+        # @filtered_activities = liked_activities
+        # @current_filters = Views::Filter.new(session[:filters] || {})
+        # @filter_options  = Views::FilterOption.new(@all_activities || [])
 
         view 'like', locals: view_locals
       end
@@ -134,7 +149,8 @@ module Eventure
       routing.on 'activities' do
         routing.is do
           session[:filters] = extract_filters(routing)
-          @filtered_activities = fetched_filtered_activities(session[:filters])
+          session[:filtered_activities] = fetched_filtered_activities(session[:filters])
+          # @filtered_activities = fetched_filtered_activities(session[:filters])
           show_activities
         end
 
@@ -151,7 +167,8 @@ module Eventure
             activities_list = result.value!
 
             # 如果 service 回傳的是 Representer::ActivityList（有 .activities），把它轉換為 view 預期的 OpenStruct 格式
-            @filtered_activities = if activities_list.respond_to?(:activities)
+            session[:filtered_activities] = if activities_list.respond_to?(:activities)
+            # @filtered_activities = if activities_list.respond_to?(:activities)
                                      Array(activities_list.activities).map { |a| map_api_activity(a) }
                                    elsif activities_list.is_a?(Hash)
                                      activities_list[:filtered_activities] || activities_list['filtered_activities'] || []
@@ -185,8 +202,10 @@ module Eventure
 
     # ================== Show Activities ==================
     def show_activities
-      @current_filters = Views::Filter.new(session[:filters])
-      @filter_options = Views::FilterOption.new(@all_activities)
+      session[:current_filters] = Views::Filter.new(session[:filters])
+      session[:filter_options] = Views::FilterOption.new(session[:all_activities])
+      # @current_filters = Views::Filter.new(session[:filters])
+      # @filter_options = Views::FilterOption.new(@all_activities)
       view 'home', locals: view_locals
     end
 
@@ -203,11 +222,17 @@ module Eventure
     end
 
     def view_locals
+      puts "all_activities size: #{session[:all_activities]&.length || 0}"
+      puts "filtered_activities size: #{session[:filtered_activities]&.length || 0}"
       {
-        cards: Views::ActivityList.new(@filtered_activities),
-        all_activities: @all_activities,
-        current_filters: @current_filters,
-        filter_options: @filter_options,
+        cards: Views::ActivityList.new(session[:filtered_activities]),
+        all_activities: session[:all_activities],
+        current_filters: session[:current_filters],
+        filter_options: session[:filter_options],
+        # cards: Views::ActivityList.new(@filtered_activities),
+        # all_activities: @all_activities,
+        # current_filters: @current_filters,
+        # filter_options: @filter_options,
         liked_sernos: Array(session[:user_likes]).map(&:to_i),
         total_pages: 1,
         current_page: 1
@@ -220,6 +245,7 @@ module Eventure
 
       response_obj = result.value! # 這裡拿到 Response::ApiResult
       response_obj.activities.map { |a| map_api_activity(a) }
+      puts "fetched activities size: #{response_obj.activities.length}"
     end
 
     # Map a raw activity (from API representer) to the view OpenStruct shape

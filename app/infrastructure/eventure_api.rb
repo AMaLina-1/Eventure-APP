@@ -124,14 +124,18 @@ module Eventure
             'Accept' => 'application/json',
             'Content-Type' => 'application/json'
           )
+          puts "get response"
 
           response =
             if body
               http.public_send(method, url, body: body)
+              puts 'response with body sent'
             else
               http.public_send(method, url)
+              puts 'response sent'
             end
           # puts "HTTP RESPONSE BODY: #{response.body.to_s}"
+          puts "response in call_api: #{response}"
           Response.new(response)
         rescue StandardError
           raise "Invalid URL request: #{url}"
@@ -145,10 +149,12 @@ module Eventure
 
         def success?
           code.between?(SUCCESS_CODES.first, SUCCESS_CODES.last)
+          # __getobj__.status.code.between?(SUCCESS_CODES.first, SUCCESS_CODES.last)
         end
 
         def message
           payload['message']
+          # JSON.parse(payload)['message']
         end
 
         def payload
