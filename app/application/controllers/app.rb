@@ -19,29 +19,22 @@ module Eventure
     plugin :common_logger, $stdout
     plugin :halt
     plugin :caching
-    
+
     # ================== Routes ==================
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
-      if App.environment == :production
-        response.cache_control public: true, max_age: 300
-      end
+      response.cache_control public: true, max_age: 300 if App.environment == :production
 
       # ================== Initialize Session ==================
-      unless defined?(@filtered_activities) && @filtered_activities
-        session[:filters] ||= {
-          tag: [],
-          city: nil,
-          districts: [],
-          start_date: nil,
-          end_date: nil
-        }
-      end
+      session[:filters] ||= {
+        tag: [],
+        city: nil,
+        districts: [],
+        start_date: nil,
+        end_date: nil
+      }
       session[:user_likes] ||= []
-      activities = fetched_filtered_activities(session[:filters])
-      @all_activities = activities
-      @filtered_activities = activities
       # ================== Routes ==================
       routing.root do
         App.configure :production do
@@ -77,8 +70,9 @@ module Eventure
 
       # ================== Likes page ==================
       routing.get 'like' do
-        liked_sernos = Array(session[:user_likes]).map(&:to_i)
-        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno) }
+        @all_activities ||= fetched_filtered_activities(session[:filters])
+        liked_sernos = Array(session[:user_likes]).map(&:to_s)
+        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno.to_s) }
 
         @filtered_activities = liked_activities
         @current_filters = Views::Filter.new(session[:filters] || {})
@@ -92,6 +86,7 @@ module Eventure
         routing.is do
           session[:filters] = extract_filters(routing)
           @filtered_activities = fetched_filtered_activities(session[:filters])
+          @all_activities = @filtered_activities
           show_activities
         end
 
@@ -116,6 +111,7 @@ module Eventure
                                      []
                                    end
 
+            @all_activities = @filtered_activities
             show_activities
           end
         end
@@ -123,8 +119,8 @@ module Eventure
         routing.post 'like' do
           response['Content-Type'] = 'application/json'
           serno = routing.params['serno'] || routing.params['serno[]']
-
-          result = Service::UpdateLikeCounts.new.call(serno: serno.to_i, user_likes: session[:user_likes])
+          serno = serno.to_s.strip
+          result = Service::UpdateLikeCounts.new.call(serno: serno, user_likes: session[:user_likes])
 
           if result.failure?
             response.status = 400
@@ -133,8 +129,9 @@ module Eventure
             result_value = result.value!
             session[:user_likes] = result_value.user_likes
             # check if this user curreently likes this activity
-            user_likes_this = session[:user_likes].map(&:to_i).include?(serno.to_i)
-            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes], is_liked: user_likes_this }.to_json
+            user_likes_this = session[:user_likes].map(&:to_s).include?(serno.to_s)
+            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes],
+              is_liked: user_likes_this }.to_json
           end
         end
       end
@@ -165,7 +162,7 @@ module Eventure
         all_activities: @all_activities,
         current_filters: @current_filters,
         filter_options: @filter_options,
-        liked_sernos: Array(session[:user_likes]).map(&:to_i),
+        liked_sernos: Array(session[:user_likes]).map(&:to_s),
         total_pages: 1,
         current_page: 1
       }
@@ -202,7 +199,7 @@ module Eventure
         building: a.building,
         detail: a.detail,
         organizer: a.organizer,
-        voice: a.respond_to?(:voice) ? a.voice : nil, 
+        voice: a.respond_to?(:voice) ? a.voice : nil,
         tags: tags,
         activity_date: OpenStruct.new(
           start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
