@@ -11,7 +11,7 @@ html
 
   body
     / Navbar
-    nav.navbar.navbar-expand-lg.bg-body-tertiary
+    nav.navbar.navbar-expand-lg.bg-body-tertiary.fixed-top
       .container-fluid
         a.navbar-brand href="/" Eventure
         button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
@@ -45,7 +45,7 @@ html
             input.form-control.me-2 type="search" name="keyword" placeholder="Search" aria-label="Search"
             button.btn.btn-outline-success type="submit" Search
 
-    .container#html_body.mt-4
+    .container#html_body.mt-5
       header.mb-4
         h1
           a.text-underline-hover href="/" Eventure
@@ -119,23 +119,23 @@ html
                 .col-md-4
                   h6 縣市
                   ul.list-group#regionCityList
-                    - Array(@filter_options&.cities || []).each do |c|
+                    - Array(@filter_options&.cities || []).compact.reject(&:empty?).each do |c|
                       li.list-group-item
                         label.form-check
                           - checked_city = (@current_filters&.city.to_s == c.to_s)
                           input.form-check-input.city-radio type="radio" name="filter_city" value="#{c}" data-city="#{c}" id="region-city-#{c}" checked=(checked_city)
                           span.form-check-label= c
-                .col-md-6
-                  h6 區域
-                  #districtMenu
-                    - dmap = @filter_options&.districts || {}
-                    - selected_dists = Array(@current_filters&.districts).map(&:to_s)
-                    - if dmap && dmap.is_a?(Hash) && dmap.any?
-                      - first_city = Array(@filter_options&.cities).first
-                      - (dmap[first_city] || []).each do |dist|
-                        .form-check
-                          input.form-check-input type="checkbox" name="filter_district[]" value="#{dist}" id="dist-#{dist}" checked=(selected_dists.include?(dist.to_s))
-                          label.form-check-label for="dist-#{dist}"= dist
+                / .col-md-6
+                /   h6 區域
+                /   #districtMenu
+                /     - dmap = @filter_options&.districts || {}
+                /     - selected_dists = Array(@current_filters&.districts).map(&:to_s)
+                /     - if dmap && dmap.is_a?(Hash) && dmap.any?
+                /       - first_city = Array(@filter_options&.cities).first
+                /       - (dmap[first_city] || []).each do |dist|
+                /         .form-check
+                /           input.form-check-input type="checkbox" name="filter_district[]" value="#{dist}" id="dist-#{dist}" checked=(selected_dists.include?(dist.to_s))
+                /           label.form-check-label for="dist-#{dist}"= dist
             .modal-footer
               button.btn.btn-secondary type="button" data-bs-dismiss="modal" 取消
               button.btn.btn-primary type="submit" form="regionForm" Save
