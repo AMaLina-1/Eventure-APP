@@ -51,15 +51,15 @@ module Eventure
           response.expires 300, public: true
         end
         
-        puts "Fetching activities from API..."
-        result = Eventure::Service::ApiActivities.new.call
-        # puts result.value!
-        if result.failure?
-          flash[:error] = result.failure
-        else
-          flash[:notice] = result.value!.msg # .msg?
-          puts result.value!.msg
-        end        
+        # puts "Fetching activities from API..."
+        # result = Eventure::Service::ApiActivities.new.call
+        # # puts result.value!
+        # if result.failure?
+        #   flash[:error] = result.failure
+        # else
+        #   flash[:notice] = result.value!.msg # .msg?
+        #   puts result.value!.msg
+        # end        
 
 
         view 'intro_where'
