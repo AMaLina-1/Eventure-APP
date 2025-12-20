@@ -118,8 +118,8 @@ module Eventure
         def call_api(method, resources = [], params = {}, body = nil)
           api_path = resources.empty? ? @api_host : @api_root
           url      = ([api_path] + resources).join('/') + params_str(params)
-          puts "HTTP RESPONSE BODY: #{url}"
-          puts 'body:' + body.to_s
+          # puts "HTTP RESPONSE BODY: #{url}"
+          # puts 'body:' + body.to_s
           http = HTTP.headers(
             'Accept' => 'application/json',
             'Content-Type' => 'application/json'
