@@ -81,10 +81,13 @@ module Eventure
         App.configure :production do
           response.expires 300, public: true
         end
-        # view 'intro_where'
-      # end
+        view 'intro_where'
+      end
 
-      # routing.get do  # Matches POST /
+      # Trigger fetching activities once via POST '/' (called on app initialization)
+      routing.post do
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+
         puts "Fetching activities from API..."
         result = Eventure::Service::ApiActivities.new.call
         if result.failure?
@@ -93,7 +96,8 @@ module Eventure
           flash[:notice] = result.value!.msg
           puts result.value!.msg
         end
-        view 'intro_where'
+        
+        routing.redirect '/intro_where'
       end
 
 
