@@ -150,7 +150,12 @@ module Eventure
         end
 
         def message
-          payload['message']
+          # payload['message']
+          JSON.parse(payload)['message']
+        end
+
+        def status
+          JSON.parse(payload)['status']
         end
 
         def payload

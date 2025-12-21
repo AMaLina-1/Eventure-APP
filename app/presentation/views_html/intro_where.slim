@@ -65,30 +65,14 @@ script
       container.style.display = "block";
 
       const client = new Faye.Client("http://localhost:9090/faye");
+      const request_id = "<%= processing.ws_channel_id %>"; // 從 locals 注入
 
-      client.subscribe("/progress", function (message) {
-        console.log("Faye message:", message);
-
-        let percent;
-
-        if (typeof message === "number") {
-          percent = message;
-        } else if (typeof message === "string") {
-          percent = parseInt(message, 10);
-        } else if (typeof message === "object" && message !== null) {
-          percent = message.percent ?? message.progress;
-        }
-
-        if (typeof percent !== "number" || isNaN(percent)) return;
-
-        bar.style.width = percent + "%";
-        bar.setAttribute("aria-valuenow", percent);
-        bar.textContent = percent + "%";
-
-        if (percent >= 100) {
-          bar.classList.remove("progress-bar-animated");
-          bar.classList.remove("progress-bar-striped");
-          container.classList.add("done");
+      client.subscribe(`/progress/${request_id}`, function(message) {
+        const percent = parseInt(message, 10);
+        if (!isNaN(percent)) {
+          bar.style.width = percent + "%";
+          bar.setAttribute("aria-valuenow", percent);
+          bar.textContent = percent + "%";
         }
       });
     });

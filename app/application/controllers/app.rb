@@ -55,45 +55,18 @@ module Eventure
         App.configure :production do
           response.expires 300, private: true
         end
+
+        # view 'intro_where'
+
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+
+        puts "Fetching activities from API..."
+        result = Eventure::Service::ApiActivities.new.call
         
-        # puts "Fetching activities from API..."
-        # result = Eventure::Service::ApiActivities.new.call
-        # # puts result.value!
-        # if result.failure?
-        #   flash[:error] = result.failure
-        # else
-        #   flash[:notice] = result.value!.msg # .msg?
-        #   puts result.value!.msg
-        # end        
+        processing = Views::FetchingProcessing.new(App.config, result)
 
-
-        view 'intro_where'
+        view '/intro_where', locals: { processing: processing }
       end
-
-      routing.root do
-        routing.get do
-          App.configure :production do
-            response.expires 300, public: true
-          end
-
-          view 'intro_where'
-        end
-
-        routing.post do
-          puts "Fetching activities from API..."
-          result = Eventure::Service::ApiActivities.new.call
-          # puts result.value!
-          if result.failure?
-            flash[:error] = result.failure
-          else
-            flash[:notice] = result.value!.msg # .msg?
-            puts result.value!.msg
-          end 
-
-          
-        end
-      end
-
 
       routing.get 'intro_where' do
         App.configure :production do
