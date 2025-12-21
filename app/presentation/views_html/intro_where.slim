@@ -33,8 +33,62 @@
       a.position-absolute.btn.btn-sm.btn-primary style="top: 9%; left: 38%;" href="/intro_tag?filter_city=桃園市#{lang_param}"
         | 桃園
 
+/ === Progress Bar（固定在 footer 上方） ===
+#fetch-progress(
+  style="position: fixed; bottom: 72px; left: 0;
+         width: 100%; z-index: 1100;"
+)
+  .progress(style="height: 1.25rem;")
+    .progress-bar.progress-bar-striped.progress-bar-animated.bg-primary(
+      id="progress-bar"
+      style="width: 0%;"
+    )
+      | 0%
+
+
 
 / === Skip 永遠固定在畫面左下角 ===
 - skip_text = (@current_language == 'en' ? 'Skip >>' : '跳過 >>')
 a.btn.btn-secondary.position-fixed style="bottom: 1rem; right: 1rem; z-index: 999;" href="/activities"
-  = skip_text
+  | Skip>>
+
+/ === JS（放在檔案最後） ===
+script
+  |
+    document.addEventListener("DOMContentLoaded", function () {
+      const bar = document.getElementById("progress-bar");
+      const container = document.getElementById("fetch-progress");
+      if (!bar) return;
+
+      // 預設文字
+      bar.textContent = "Fetching activities…";
+      container.style.display = "block";
+
+      const client = new Faye.Client("http://localhost:9090/faye");
+
+      client.subscribe("/progress", function (message) {
+        console.log("Faye message:", message);
+
+        let percent;
+
+        if (typeof message === "number") {
+          percent = message;
+        } else if (typeof message === "string") {
+          percent = parseInt(message, 10);
+        } else if (typeof message === "object" && message !== null) {
+          percent = message.percent ?? message.progress;
+        }
+
+        if (typeof percent !== "number" || isNaN(percent)) return;
+
+        bar.style.width = percent + "%";
+        bar.setAttribute("aria-valuenow", percent);
+        bar.textContent = percent + "%";
+
+        if (percent >= 100) {
+          bar.classList.remove("progress-bar-animated");
+          bar.classList.remove("progress-bar-striped");
+          container.classList.add("done");
+        }
+      });
+    });
