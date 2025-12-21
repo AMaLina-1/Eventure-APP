@@ -4,33 +4,37 @@
     / === 左半邊 ===
     .col-md-6.position-relative
 
+      - view_all_text = (@current_language == 'en' ? 'View All' : '查看全部')
       a.btn.btn-outline-primary.position-absolute style="top: 0; left: 0;" href="/activities"
-        | View All
+        = view_all_text
 
       .d-flex.flex-column.justify-content-center(style="height: 100%; margin-top: 2rem;")
+        - heading_text = (@current_language == 'en' ? 'Where are you now...' : '你現在在哪裡...')
         h2.text-start
-          | Where are you now...
+          = heading_text
 
     / === 右半邊 ===
     .col-md-6.position-relative
       img src="/assets/image/taiwan_map.png" class="img-fluid"
 
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 17%; left: 37%;" href="/intro_tag?filter_city=新竹市"
+      - lang_param = @current_language == 'en' ? '&lang=en' : ''
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 17%; left: 37%;" href="/intro_tag?filter_city=新竹市#{lang_param}"
         | 新竹
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 31%; left: 24%;" href="/intro_tag?filter_city=台中市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 31%; left: 24%;" href="/intro_tag?filter_city=台中市#{lang_param}"
         | 台中
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 61%; left: 12%;" href="/intro_tag?filter_city=台南市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 61%; left: 12%;" href="/intro_tag?filter_city=台南市#{lang_param}"
         | 台南
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 65%; left: 23%;" href="/intro_tag?filter_city=高雄市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 65%; left: 23%;" href="/intro_tag?filter_city=高雄市#{lang_param}"
         | 高雄
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 6%; left: 48%;" href="/intro_tag?filter_city=台北市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 6%; left: 48%;" href="/intro_tag?filter_city=台北市#{lang_param}"
         | 台北
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 12%; left: 46%;" href="/intro_tag?filter_city=新北市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 12%; left: 46%;" href="/intro_tag?filter_city=新北市#{lang_param}"
         | 新北
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 9%; left: 38%;" href="/intro_tag?filter_city=桃園市"
+      a.position-absolute.btn.btn-sm.btn-primary style="top: 9%; left: 38%;" href="/intro_tag?filter_city=桃園市#{lang_param}"
         | 桃園
 
 
 / === Skip 永遠固定在畫面左下角 ===
+- skip_text = (@current_language == 'en' ? 'Skip >>' : '跳過 >>')
 a.btn.btn-secondary.position-fixed style="bottom: 1rem; right: 1rem; z-index: 999;" href="/activities"
-  | Skip>>
+  = skip_text

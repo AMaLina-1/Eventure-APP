@@ -11,18 +11,24 @@ module Eventure
 
       property :serno
       property :name
+      property :name_en
       property :location
       property :city
+      property :city_en
       property :district
+      property :district_en
       property :building
       property :detail
+      property :detail_en
       property :organizer
+      property :organizer_en
       property :voice
       property :tag
       property :status
       property :likes_count
       property :start_time
       property :duration
+      property :relate_url
     end
   end
 end

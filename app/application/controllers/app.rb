@@ -24,7 +24,9 @@ module Eventure
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
-      response.cache_control public: true, max_age: 300 if App.environment == :production
+      # response.cache_control public: true, max_age: 300 if App.environment == :production
+      response['Vary'] = 'Accept-Language, Cookie'
+      response.cache_control private: true, max_age: 300 if App.environment == :production
 
       # ================== Initialize Session ==================
       session[:filters] ||= {
@@ -35,7 +37,14 @@ module Eventure
         end_date: nil
       }
       session[:user_likes] ||= []
-      # ================== Routes ==================
+      session[:language] ||= 'zh-TW'
+
+      if routing.params['lang']
+        session[:language] = routing.params['lang']
+      end
+      @current_language = session[:language]
+
+      # ================== Routes ==================      
       routing.get 'clear_session' do
         session.clear
         puts 'session cleared'
@@ -44,7 +53,7 @@ module Eventure
 
       routing.root do
         App.configure :production do
-          response.expires 300, public: true
+          response.expires 300, private: true
         end
         
         # puts "Fetching activities from API..."
@@ -63,7 +72,7 @@ module Eventure
 
       routing.get 'intro_where' do
         App.configure :production do
-          response.expire 300, public: true
+          response.expires 300, private: true
         end
         view 'intro_where'
       end
@@ -116,7 +125,10 @@ module Eventure
         # 新增：GET /activities/search?keyword=xxx
         routing.get 'search' do
           # 1) 直接把 keyword 以 Hash 傳給 service（Dry::Transaction 期望 Hash 輸入）
-          result = Eventure::Service::SearchedActivities.new.call(keyword: routing.params['keyword'])
+          result = Eventure::Service::SearchedActivities.new.call(
+            keyword: routing.params['keyword'],
+            language: @current_language
+          )
 
           # 2) form 或 service 任一失敗，都在這裡處理
           if result.failure?
@@ -192,11 +204,11 @@ module Eventure
     end
 
     def fetched_filtered_activities(filters)
-      result = Eventure::Service::FilteredActivities.new.call(filters: filters)
-      return [] if result.failure?
-
-      response_obj = result.value! # 這裡拿到 Response::ApiResult
-      response_obj.activities.map { |a| map_api_activity(a) }
+      filters_language = filters.merge(language: @current_language)
+      result = Eventure::Service::FilteredActivities.new.call(filters: filters_language)
+      response_obj = result.value!
+      activities = response_obj.activities
+      activities.map { |a| map_api_activity(a) }
     end
 
     # Map a raw activity (from API representer) to the view OpenStruct shape
@@ -213,24 +225,35 @@ module Eventure
         OpenStruct.new(tag: value)
       end
 
+      use_english = (@current_language == 'en')
+      
+      get_localized = lambda do |field_name|
+        if use_english
+          en_method = "#{field_name}_en".to_sym
+          en_value = a.respond_to?(en_method) ? a.send(en_method) : nil
+          return en_value if en_value && !en_value.to_s.strip.empty?
+        end
+        a.respond_to?(field_name) ? a.send(field_name) : nil
+      end
+
       OpenStruct.new(
         serno: a.respond_to?(:serno) ? a.serno : nil,
-        name: a.respond_to?(:name) ? a.name : nil,
+        name: get_localized.call(:name),
         location: a.respond_to?(:location) ? a.location : nil,
-        city: a.city,
-        district: a.district,
-        building: a.building,
-        detail: a.detail,
-        organizer: a.organizer,
+        city: get_localized.call(:city),
+        district: get_localized.call(:district),
+        building: a.respond_to?(:building) ? a.building : nil,
+        detail: get_localized.call(:detail),
+        organizer: get_localized.call(:organizer),
         voice: a.respond_to?(:voice) ? a.voice : nil,
         tags: tags,
         activity_date: OpenStruct.new(
-          start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
-          end_time: a.end_time,
-          duration: a.duration,
-          status: (a.respond_to?(:status) ? a.status : nil)
+          start_time: a.respond_to?(:start_time) ? a.start_time : nil,
+          end_time: a.respond_to?(:end_time) ? a.end_time : nil,
+          duration: a.respond_to?(:duration) ? a.duration : nil,
+          status: a.respond_to?(:status) ? a.status : nil
         ),
-        likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
+        likes_count: a.respond_to?(:likes_count) ? a.likes_count : 0
       )
     end
   end

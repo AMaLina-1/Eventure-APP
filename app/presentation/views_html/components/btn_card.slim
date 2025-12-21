@@ -1,7 +1,6 @@
 //- Component: btn_card
 //- Expects locals: card, liked_sernos (可選)
 
-- #id_suffix = card.respond_to?(:id) ? card.id : (card.is_a?(Hash) ? (card[:id] || card['id']) : card.object_id)
 - serno_val = card.serno
 - id_suffix = card.serno
 
@@ -9,7 +8,8 @@
 - liked = serno_val && liked_list.include?(serno_val.to_s)
 
 / 「詳細」按鈕
-a.btn.btn-primary.me-2 href="#" role="button" data-bs-toggle="modal" data-bs-target=("#cardModal-#{id_suffix}") 詳細
+- details_text = (@current_language == 'en' ? 'Details' : '詳細')
+a.btn.btn-primary.me-2 href="#" role="button" data-bs-toggle="modal" data-bs-target=("#cardModal-#{id_suffix}") = details_text
 
 / 愛心按鈕（initial state 依 session）
 button.btn.btn-link.p-0.btn-heart type="button" aria-label="like" data-liked=(liked ? 'true' : 'false') data-serno=serno_val
@@ -90,25 +90,31 @@ span.like-count.ms-2 = likes
       .modal-body
         - start_time = card.start_date.strftime('%Y-%m-%d %H:%M')
         - start_time = start_time.to_s.strip
+        - time_label = (@current_language == 'en' ? 'Event Time: ' : '活動時間：')
+        - no_time_text = (@current_language == 'en' ? '(No time specified)' : '(無時間)')
         - if start_time.empty?
-          p.start_time-muted (無時間)
+          p.start_time-muted = no_time_text
         - else
-          p.card-start_time = "活動時間：#{start_time}"
+          p.card-start_time = "#{time_label}#{start_time}"
 
         - duration = card.duration
-        p.card-duration = "活動時長：#{duration}"
+        - duration_label = (@current_language == 'en' ? 'Duration: ' : '活動時長：')
+        p.card-duration = "#{duration_label}#{duration}"
 
         - location = card.location
         - location = location.to_s.strip
+        - location_label = (@current_language == 'en' ? 'Location: ' : '活動地點：')
+        - no_location_text = (@current_language == 'en' ? '(No location specified)' : '(無地點)')
         - if location.empty?
-          p.location-muted (無地點)
+          p.location-muted = no_location_text
         - else
-          p.card-location = "活動地點：#{location}"
+          p.card-location = "#{location_label}#{location}"
 
         - voice = card.voice
         - voice = voice.to_s.strip
+        - no_description_text = (@current_language == 'en' ? '(No detailed description)' : '(無詳細描述)')
         - if voice.empty?
-          p.voice-muted (無詳細描述)
+          p.voice-muted = no_description_text
         - else
           p.card-voice = voice
 
@@ -120,4 +126,5 @@ span.like-count.ms-2 = likes
               li
                 a href=relate_url target="_blank"= relate_url
       .modal-footer
-        button.btn.btn-secondary type="button" data-bs-dismiss="modal" 關閉
+        - close_text = (@current_language == 'en' ? 'Close' : '關閉')
+        button.btn.btn-secondary type="button" data-bs-dismiss="modal" = close_text
