@@ -16,6 +16,10 @@ module Eventure
         @request.api_root.success?
       end
 
+      def fetch_api_activities
+        @request.fetch_api_activities
+      end
+
       # GET /api/v1/activities
       def activities_list
         @request.activities_list
@@ -61,6 +65,10 @@ module Eventure
 
         def api_root
           call_api(:get, [])
+        end
+
+        def fetch_api_activities
+          call_api(:post, [])
         end
 
         def activities_list
@@ -110,8 +118,8 @@ module Eventure
         def call_api(method, resources = [], params = {}, body = nil)
           api_path = resources.empty? ? @api_host : @api_root
           url      = ([api_path] + resources).join('/') + params_str(params)
-          puts "HTTP RESPONSE BODY: #{url}"
-          puts 'body:' + body.to_s
+          # puts "HTTP RESPONSE BODY: #{url}"
+          # puts 'body:' + body.to_s
           http = HTTP.headers(
             'Accept' => 'application/json',
             'Content-Type' => 'application/json'
@@ -124,6 +132,8 @@ module Eventure
               http.public_send(method, url)
             end
           # puts "HTTP RESPONSE BODY: #{response.body.to_s}"
+          puts response.status
+          # puts response.body
           Response.new(response)
         rescue StandardError
           raise "Invalid URL request: #{url}"

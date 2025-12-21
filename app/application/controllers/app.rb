@@ -36,10 +36,28 @@ module Eventure
       }
       session[:user_likes] ||= []
       # ================== Routes ==================
+      routing.get 'clear_session' do
+        session.clear
+        puts 'session cleared'
+        routing.redirect '/'
+      end
+
       routing.root do
         App.configure :production do
           response.expires 300, public: true
         end
+        
+        # puts "Fetching activities from API..."
+        # result = Eventure::Service::ApiActivities.new.call
+        # # puts result.value!
+        # if result.failure?
+        #   flash[:error] = result.failure
+        # else
+        #   flash[:notice] = result.value!.msg # .msg?
+        #   puts result.value!.msg
+        # end        
+
+
         view 'intro_where'
       end
 
@@ -51,6 +69,9 @@ module Eventure
       end
 
       routing.get 'intro_tag' do
+        @all_activities = fetched_filtered_activities(session[:filters])
+        puts "Total activities fetched: #{@all_activities.length}"
+      
         # 先把這次帶進來的條件轉成乾淨 hash（包含 filter_city）
         filters = extract_filters(routing) # => { tag: [...], city: '新竹市', ... }
 
@@ -58,9 +79,11 @@ module Eventure
         session[:filters] = filters
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
+        puts 'second fetching filtered activities...'
         activities_for_options = fetched_filtered_activities(filters)
-        @all_activities = activities_for_options
+        # @all_activities = activities_for_options
         @filtered_activities = activities_for_options
+        puts "Filtered activities count: #{@filtered_activities.length}"
 
         @current_filters = Views::Filter.new(filters || {})
         @filter_options  = Views::FilterOption.new(activities_for_options)
