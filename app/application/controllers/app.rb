@@ -62,8 +62,17 @@ module Eventure
 
         puts "Fetching activities from API..."
         result = Eventure::Service::ApiActivities.new.call
+        # print(result.value!.status)
+
+        # print(result.value!['status'])
         
-        processing = Views::FetchingProcessing.new(App.config, result)
+        processing = Views::FetchingProcessing.new(App.config, result.value!)
+        
+        # print("subscribing to", `/progress/${processing.ws_channel_id}`);
+        puts (processing.in_progress?)
+        puts(processing.ws_channel_id)
+        puts(processing.ws_route)
+        puts(processing.ws_javascript)
 
         view '/intro_where', locals: { processing: processing }
       end

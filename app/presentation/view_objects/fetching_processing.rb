@@ -9,7 +9,8 @@ module Views
     end
 
     def in_progress?
-      @response.processing?
+      # @response.processing?
+      @response.status == 'processing'
     end
 
     def ws_channel_id

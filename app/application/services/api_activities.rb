@@ -22,9 +22,9 @@ module Eventure
       end
 
       def reify_progress(input)
-        input[:status] = input.status
-        input[:request_id] = input.message['request_id']
-        input[:msg] = input.message['msg']
+        # input[:status] = input.status
+        # input[:request_id] = input.message['request_id']
+        # input[:msg] = input.message['msg']
         Success(input)
       rescue StandardError
         Failure('Error in the fetching API activities -- please try again')
