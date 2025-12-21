@@ -77,28 +77,23 @@ module Eventure
 >>>>>>> a0b0087 (add api_activities service)
       end
 
-      routing.root do
-        routing.get do
-          App.configure :production do
-            response.expires 300, public: true
-          end
-
-          view 'intro_where'
+      routing.get do  # Matches GET /
+        App.configure :production do
+          response.expires 300, public: true
         end
+        # view 'intro_where'
+      # end
 
-        routing.post do
-          puts "Fetching activities from API..."
-          result = Eventure::Service::ApiActivities.new.call
-          # puts result.value!
-          if result.failure?
-            flash[:error] = result.failure
-          else
-            flash[:notice] = result.value!.msg # .msg?
-            puts result.value!.msg
-          end 
-
-          
+      # routing.get do  # Matches POST /
+        puts "Fetching activities from API..."
+        result = Eventure::Service::ApiActivities.new.call
+        if result.failure?
+          flash[:error] = result.failure
+        else
+          flash[:notice] = result.value!.msg
+          puts result.value!.msg
         end
+        view 'intro_where'
       end
 
 
