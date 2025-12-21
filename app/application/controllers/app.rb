@@ -37,6 +37,7 @@ module Eventure
         end_date: nil
       }
       session[:user_likes] ||= []
+<<<<<<< HEAD
       session[:language] ||= 'zh-TW'
 
       if routing.params['lang']
@@ -45,10 +46,14 @@ module Eventure
       @current_language = session[:language]
 
       # ================== Routes ==================      
+=======
+      # ================== Routes ==================
+>>>>>>> a0b0087 (add api_activities service)
       routing.get 'clear_session' do
         session.clear
         puts 'session cleared'
         routing.redirect '/'
+<<<<<<< HEAD
       end
 
       routing.root do
@@ -68,7 +73,34 @@ module Eventure
 
 
         view 'intro_where'
+=======
+>>>>>>> a0b0087 (add api_activities service)
       end
+
+      routing.root do
+        routing.get do
+          App.configure :production do
+            response.expires 300, public: true
+          end
+
+          view 'intro_where'
+        end
+
+        routing.post do
+          puts "Fetching activities from API..."
+          result = Eventure::Service::ApiActivities.new.call
+          # puts result.value!
+          if result.failure?
+            flash[:error] = result.failure
+          else
+            flash[:notice] = result.value!.msg # .msg?
+            puts result.value!.msg
+          end 
+
+          
+        end
+      end
+
 
       routing.get 'intro_where' do
         App.configure :production do
