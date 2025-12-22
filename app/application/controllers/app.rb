@@ -69,10 +69,10 @@ module Eventure
         processing = Views::FetchingProcessing.new(App.config, result.value!)
         
         # print("subscribing to", `/progress/${processing.ws_channel_id}`);
-        puts (processing.in_progress?)
-        puts(processing.ws_channel_id)
-        puts(processing.ws_route)
-        puts(processing.ws_javascript)
+        # puts (processing.in_progress?)
+        # puts(processing.ws_channel_id)
+        # puts(processing.ws_route)
+        # puts(processing.ws_javascript)
 
         view '/intro_where', locals: { processing: processing }
       end

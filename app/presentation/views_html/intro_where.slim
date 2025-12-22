@@ -67,9 +67,9 @@
 
           // Reload page at 100%
           if (message == "100") {
-            setTimeout(function () {
-              window.location = window.location.href
-            }, 1000);
+            bar.classList.remove("progress-bar-animated");
+            bar.classList.remove("progress-bar-striped");
+            bar.innerHTML = "100%";
           }
         }
       }
