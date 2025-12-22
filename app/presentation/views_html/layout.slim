@@ -11,7 +11,7 @@ html
 
   body
     / Navbar
-    nav.navbar.navbar-expand-lg.bg-body-tertiary
+    nav.navbar.navbar-expand-lg.bg-body-tertiary.fixed-top
       .container-fluid
         a.navbar-brand href="/" Eventure
         button.navbar-toggler type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"
@@ -21,31 +21,43 @@ html
             li.nav-item
               a.nav-link.active aria-current="page" href="/"
                 i.bi.bi-house-door-fill.me-1 aria-hidden="true"
-                | Home
+                - home_text = (@current_language == 'en' ? 'Home' : '首頁')
+                = home_text
             li.nav-item
-              // 活動分類 按鈕會觸發 modal
               a.nav-link href="#" data-bs-toggle="modal" data-bs-target="#filterModal"
                 i.bi.bi-funnel-fill.me-1 aria-hidden="true"
-                | 活動分類
+                - filter_text = (@current_language == 'en' ? 'Categories' : '活動分類')
+                = filter_text
             li.nav-item
-              // 時間分類（暫為占位，稍後可實作更細節）
               a.nav-link href="#" data-bs-toggle="modal" data-bs-target="#timeModal"
                 i.bi.bi-calendar3.me-1 aria-hidden="true"
-                | 時間分類
+                - time_text = (@current_language == 'en' ? 'Time Filter' : '時間分類')
+                = time_text
             li.nav-item
-              // 地區分類（左側縣市，右側區域）
               a.nav-link href="#" data-bs-toggle="modal" data-bs-target="#regionModal"
                 i.bi.bi-geo-alt.me-1 aria-hidden="true"
-                | 地區分類
+                - region_text = (@current_language == 'en' ? 'Location' : '地址分類')
+                = region_text
             li.nav-item
               a.nav-link.active aria-current="page" href="/like"
                 i.bi.bi-suit-heart-fill.me-1.text-danger aria-hidden="true"
-                | Like
-          form.d-flex role="search" method="get" action="/activities/search"
-            input.form-control.me-2 type="search" name="keyword" placeholder="Search" aria-label="Search"
-            button.btn.btn-outline-success type="submit" Search
+                - like_text = (@current_language == 'en' ? 'Favorites' : '收藏')
+                = like_text
+          
+          / Search and Language Toggle
+          form.d-flex.align-items-center role="search" method="get" action="/activities/search"
+            - search_placeholder = (@current_language == 'en' ? 'Search' : '搜尋')
+            input.form-control.me-2 type="search" name="keyword" placeholder="#{search_placeholder}" aria-label="Search" style="min-width: 150px;"
+            button.btn.btn-success.me-2 type="submit"
+              i.bi.bi-search
+          
+          / Language Toggle Button - Test with direct onclick
+          a.btn.btn-sm.btn-outline-secondary href="?lang=#{@current_language == 'en' ? 'zh-TW' : 'en'}"
+            i.bi.bi-translate.me-1
+            - current_lang = @current_language || 'zh-TW'
+            span#currentLang = (current_lang == 'en' ? 'EN' : '中文')
 
-    .container#html_body.mt-4
+    .container#html_body.mt-5
       header.mb-4
         h1
           a.text-underline-hover href="/" Eventure
@@ -62,17 +74,19 @@ html
 
         == yield
 
-    / 活動分類 modal（左：縣市，右：活動標籤）
+    / 活動分類 modal
     .modal.fade id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true"
       .modal-dialog.modal-lg
         .modal-content
           .modal-header
-            h5.modal-title id="filterModalLabel" 活動分類
+            - modal_title = (@current_language == 'en' ? 'Activity Categories' : '活動分類')
+            h5.modal-title id="filterModalLabel" = modal_title
             button.btn-close type="button" data-bs-dismiss="modal" aria-label="Close"
           .modal-body
             form#filtersForm method="get" action="/activities"
               .row
-                h6 活動標籤
+                - tag_label = (@current_language == 'en' ? 'Activity Tags' : '活動標籤')
+                h6 = tag_label
                 #tagList
                   .row
                     - selected_tags = Array(@current_filters&.tags).map(&:to_s)
@@ -82,70 +96,107 @@ html
                           input.form-check-input type="checkbox" name="filter_tag[]" value="#{t}" id="tag-#{t}" checked=(selected_tags.include?(t.to_s))
                           label.form-check-label for="tag-#{t}"= t
           .modal-footer
-            button.btn.btn-secondary type="button" data-bs-dismiss="modal" 取消
-            button.btn.btn-primary type="submit" form="filtersForm" Save
+            - cancel_text = (@current_language == 'en' ? 'Cancel' : '取消')
+            - save_text = (@current_language == 'en' ? 'Apply' : '套用')
+            button.btn.btn-secondary type="button" data-bs-dismiss="modal" = cancel_text
+            button.btn.btn-primary type="submit" form="filtersForm" = save_text
 
-    / 時間分類 modal（start_date / end_date）
+    / 時間分類 modal
     .modal.fade id="timeModal" tabindex="-1" aria-labelledby="timeModalLabel" aria-hidden="true"
       .modal-dialog
         .modal-content
           .modal-header
-            h5.modal-title id="timeModalLabel" 時間分類
+            - time_modal_title = (@current_language == 'en' ? 'Time Filter' : '時間分類')
+            h5.modal-title id="timeModalLabel" = time_modal_title
             button.btn-close type="button" data-bs-dismiss="modal" aria-label="Close"
           form#timeForm method="get" action="/activities"
             .modal-body
               - start_val = @current_filters&.start_date.to_s
               - end_val   = @current_filters&.end_date.to_s
+              - start_label = (@current_language == 'en' ? 'Start Date' : '起始時間')
+              - end_label = (@current_language == 'en' ? 'End Date' : '結束時間')
               .mb-3
-                label.form-label for="filter_start_date" 起始時間
+                label.form-label for="filter_start_date" = start_label
                 input.form-control type="date" id="filter_start_date" name="filter_start_date" value="#{start_val}"
               .mb-3
-                label.form-label for="filter_end_date" 結束時間
+                label.form-label for="filter_end_date" = end_label
                 input.form-control type="date" id="filter_end_date" name="filter_end_date" value="#{end_val}"
             .modal-footer
-              button.btn.btn-secondary type="button" data-bs-dismiss="modal" 取消
-              button.btn.btn-primary type="submit" form="timeForm" 套用
+              - cancel_text = (@current_language == 'en' ? 'Cancel' : '取消')
+              - apply_text = (@current_language == 'en' ? 'Apply' : '套用')
+              button.btn.btn-secondary type="button" data-bs-dismiss="modal" = cancel_text
+              button.btn.btn-primary type="submit" form="timeForm" = apply_text
 
-    / 地區分類 modal（左：縣市，右：區域 checkbox）
+    / 地址分類 modal
     .modal.fade id="regionModal" tabindex="-1" aria-labelledby="regionModalLabel" aria-hidden="true"
       .modal-dialog.modal-lg
         .modal-content
           .modal-header
-            h5.modal-title id="regionModalLabel" 地區篩選
+            - region_modal_title = (@current_language == 'en' ? 'Location Filter' : '地址篩選')
+            h5.modal-title id="regionModalLabel" = region_modal_title
             button.btn-close type="button" data-bs-dismiss="modal" aria-label="Close"
           form#regionForm method="get" action="/activities"
             .modal-body
               .row
                 .col-md-4
-                  h6 縣市
+                  - city_label = (@current_language == 'en' ? 'City/County' : '縣市')
+                  h6 = city_label
                   ul.list-group#regionCityList
-                    - Array(@filter_options&.cities || []).each do |c|
+                    - Array(@filter_options&.cities || []).compact.reject(&:empty?).each do |c|
                       li.list-group-item
                         label.form-check
                           - checked_city = (@current_filters&.city.to_s == c.to_s)
                           input.form-check-input.city-radio type="radio" name="filter_city" value="#{c}" data-city="#{c}" id="region-city-#{c}" checked=(checked_city)
                           span.form-check-label= c
-                .col-md-6
-                  h6 區域
-                  #districtMenu
-                    - dmap = @filter_options&.districts || {}
-                    - selected_dists = Array(@current_filters&.districts).map(&:to_s)
-                    - if dmap && dmap.is_a?(Hash) && dmap.any?
-                      - first_city = Array(@filter_options&.cities).first
-                      - (dmap[first_city] || []).each do |dist|
-                        .form-check
-                          input.form-check-input type="checkbox" name="filter_district[]" value="#{dist}" id="dist-#{dist}" checked=(selected_dists.include?(dist.to_s))
-                          label.form-check-label for="dist-#{dist}"= dist
             .modal-footer
-              button.btn.btn-secondary type="button" data-bs-dismiss="modal" 取消
-              button.btn.btn-primary type="submit" form="regionForm" Save
-
+              - cancel_text = (@current_language == 'en' ? 'Cancel' : '取消')
+              - save_text = (@current_language == 'en' ? 'Apply' : '套用')
+              button.btn.btn-secondary type="button" data-bs-dismiss="modal" = cancel_text
+              button.btn.btn-primary type="submit" form="regionForm" = save_text
 
     / 把 districts 的資料放在頁面上，供前端使用（JSON）
     - districts_json = @filter_options&.districts || {}
     script type="application/json" id="districts-data"
       == districts_json.to_json
 
+    / Language switching functionality - using server sessions
+    script
+      | function toggleLanguage() {
+      |   console.log('Toggle language clicked');
+      |   
+      |   // Get current language from URL or default
+      |   const urlParams = new URLSearchParams(window.location.search);
+      |   const currentLang = urlParams.get('lang') || 'zh-TW';
+      |   const newLang = (currentLang === 'zh-TW' || currentLang === 'zh') ? 'en' : 'zh-TW';
+      |   
+      |   console.log('Switching from', currentLang, 'to', newLang);
+      |   
+      |   // Update URL with new language parameter
+      |   const url = new URL(window.location.href);
+      |   url.searchParams.set('lang', newLang);
+      |   
+      |   // Reload page - language will be saved in session by server
+      |   window.location.href = url.toString();
+      | }
+      |
+      | // Add event listener when DOM is ready
+      | window.addEventListener('DOMContentLoaded', function() {
+      |   console.log('Page loaded, setting up language toggle');
+      |   
+      |   const toggleBtn = document.getElementById('languageToggle');
+      |   if (toggleBtn) {
+      |     console.log('Language toggle button found, adding click listener');
+      |     toggleBtn.addEventListener('click', function(e) {
+      |       e.preventDefault();
+      |       console.log('Button clicked!');
+      |       toggleLanguage();
+      |     });
+      |   } else {
+      |     console.error('Language toggle button NOT found!');
+      |   }
+      | });
+
+    / Districts rendering functionality
     script
       | document.addEventListener('DOMContentLoaded', function () {
       |   try {
@@ -177,9 +228,9 @@ html
       | });
 
     footer.mt-4.text-muted.text-center
-      | Eventure is made for demonstration purposes. We cannot warrant full correctness of all content.
+      - footer_text = (@current_language == 'en' ? 'Eventure is made for demonstration purposes. We cannot warrant full correctness of all content.' : 'Eventure 僅供展示使用。我們無法保證所有內容的完全正確性。')
+      = footer_text
 
     / Scripts at end of body
     script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" crossorigin="anonymous"
     script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"
-

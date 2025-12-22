@@ -11,7 +11,28 @@ module Eventure
     class TagList < Roar::Decorator
       include Roar::JSON
 
-      collection :tags, extend: TagSingle, class: OpenStruct
+      def initialize(represented, language: 'zh-TW')
+        super(represented)
+        @language = language
+      end
+
+      collection :tags, getter: lambda { |args|
+        lang = args[:user_options]&.dig(:language) || 'zh-TW'
+        Array(tags).map do |t|
+          if lang == 'en' && t.respond_to?(:tag_en) && t.tag_en && !t.tag_en.empty?
+            t.tag_en
+          elsif t.respond_to?(:tag)
+            t.tag.to_s
+          else
+            t.to_s
+          end
+        end
+      }
+
+      # override to_json to accept language option
+      def to_json(*args)
+        to_hash(user_options: { language: @language }).to_json
+      end
     end
   end
 end

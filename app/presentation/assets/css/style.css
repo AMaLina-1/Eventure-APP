@@ -1,0 +1,13 @@
+/* Keep space for fixed-top navbar */
+body {
+    padding-top: 70px;
+    /* adjust if your navbar is taller */
+}
+
+@media (max-width: 991.98px) {
+
+    /* On mobile, navbar can be taller when expanded */
+    body {
+        padding-top: 80px;
+    }
+}

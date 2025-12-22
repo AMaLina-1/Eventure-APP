@@ -20,7 +20,8 @@ module Views
     end
 
     def location
-      "#{@activity.city}#{@activity.district}#{@activity.building}"
+      # "#{@activity.city}#{@activity.district}#{@activity.building}"
+      @activity.building
     end
 
     def city

@@ -3,22 +3,27 @@
 
     / 左半邊
     .col-md-6.position-relative
+      - view_all_text = (@current_language == 'en' ? 'View all' : '查看全部')
       a.btn.btn-outline-primary.position-absolute style="top: 0; left: 0;" href="/activities"
-        | View all
+        = view_all_text
 
       .d-flex.flex-column.justify-content-center(style="height: 100%; margin-top: 2rem;")
+        - heading_text = (@current_language == 'en' ? 'What kind of activities do you like...' : '你喜歡什麼類型的活動...')
         h4.text-start.mb-3
-          | What kind of activities do you like...
+          = heading_text
 
     / 右半邊：tag 選單
     .col-md-6
-      h5.mb-3 What kind of activities are you interested in?
+      - title_text = (@current_language == 'en' ? 'What kind of activities are you interested in?' : '你對什麼類型的活動感興趣？')
+      h5.mb-3 = title_text
       form method="get" action="/activities"
         - city_val      = @current_filters&.city.to_s
         - selected_tags = Array(@current_filters&.tags).map(&:to_s)
 
-        / 把 city 帶到 /activities
+        / 把 city 和 language 帶到 /activities
         input type="hidden" name="filter_city" value="#{city_val}"
+        - if @current_language
+          input type="hidden" name="lang" value="#{@current_language}"
 
         .row
           - Array(@filter_options&.tags || []).each do |t|
@@ -27,9 +32,11 @@
                 input.form-check-input type="checkbox" name="filter_tag[]" value="#{t}" id="intro-tag-#{t}" checked=(selected_tags.include?(t.to_s))
                 label.form-check-label for="intro-tag-#{t}"= t
 
+        - apply_text = (@current_language == 'en' ? 'Apply filters' : '套用篩選')
         button.btn.btn-primary.mt-3 type="submit"
-          | Apply filters
+          = apply_text
 
 / Skip 固定右下角
+- skip_text = (@current_language == 'en' ? 'Skip >>' : '跳過 >>')
 a.btn.btn-secondary.position-fixed style="bottom: 1rem; right: 1rem; z-index: 999;" href="/activities"
-  | Skip >>
+  = skip_text

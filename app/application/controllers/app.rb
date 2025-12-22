@@ -19,45 +19,75 @@ module Eventure
     plugin :common_logger, $stdout
     plugin :halt
     plugin :caching
-    
+
     # ================== Routes ==================
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
-      if App.environment == :production
-        response.cache_control public: true, max_age: 300
-      end
+      # response.cache_control public: true, max_age: 300 if App.environment == :production
+      response['Vary'] = 'Accept-Language, Cookie'
+      response.cache_control private: true, max_age: 300 if App.environment == :production
 
       # ================== Initialize Session ==================
-      unless defined?(@filtered_activities) && @filtered_activities
-        session[:filters] ||= {
-          tag: [],
-          city: nil,
-          districts: [],
-          start_date: nil,
-          end_date: nil
-        }
-      end
+      session[:filters] ||= {
+        tag: [],
+        city: nil,
+        districts: [],
+        start_date: nil,
+        end_date: nil
+      }
       session[:user_likes] ||= []
-      activities = fetched_filtered_activities(session[:filters])
-      @all_activities = activities
-      @filtered_activities = activities
-      # ================== Routes ==================
+      session[:language] ||= 'zh-TW'
+
+      if routing.params['lang']
+        session[:language] = routing.params['lang']
+      end
+      @current_language = session[:language]
+
+      # ================== Routes ==================      
+      routing.get 'clear_session' do
+        session.clear
+        puts 'session cleared'
+        routing.redirect '/'
+      end
+
       routing.root do
         App.configure :production do
-          response.expires 300, public: true
+          response.expires 300, private: true
         end
-        view 'intro_where'
+
+        # view 'intro_where'
+
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+
+        puts "Fetching activities from API..."
+        result = Eventure::Service::ApiActivities.new.call
+        # print(result.value!.status)
+
+        # print(result.value!['status'])
+        
+        processing = Views::FetchingProcessing.new(App.config, result.value!)
+        
+        # print("subscribing to", `/progress/${processing.ws_channel_id}`);
+        puts (processing.in_progress?)
+        puts(processing.ws_channel_id)
+        puts(processing.ws_route)
+        puts(processing.ws_javascript)
+
+        view '/intro_where', locals: { processing: processing }
       end
 
       routing.get 'intro_where' do
         App.configure :production do
-          response.expire 300, public: true
+          response.expires 300, private: true
         end
         view 'intro_where'
       end
 
       routing.get 'intro_tag' do
+        @all_activities = fetched_filtered_activities(session[:filters])
+        puts "Total activities fetched: #{@all_activities.length}"
+      
         # 先把這次帶進來的條件轉成乾淨 hash（包含 filter_city）
         filters = extract_filters(routing) # => { tag: [...], city: '新竹市', ... }
 
@@ -65,9 +95,11 @@ module Eventure
         session[:filters] = filters
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
+        puts 'second fetching filtered activities...'
         activities_for_options = fetched_filtered_activities(filters)
-        @all_activities = activities_for_options
+        # @all_activities = activities_for_options
         @filtered_activities = activities_for_options
+        puts "Filtered activities count: #{@filtered_activities.length}"
 
         @current_filters = Views::Filter.new(filters || {})
         @filter_options  = Views::FilterOption.new(activities_for_options)
@@ -77,8 +109,9 @@ module Eventure
 
       # ================== Likes page ==================
       routing.get 'like' do
-        liked_sernos = Array(session[:user_likes]).map(&:to_i)
-        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno) }
+        @all_activities ||= fetched_filtered_activities(session[:filters])
+        liked_sernos = Array(session[:user_likes]).map(&:to_s)
+        liked_activities = @all_activities.select { |a| liked_sernos.include?(a.serno.to_s) }
 
         @filtered_activities = liked_activities
         @current_filters = Views::Filter.new(session[:filters] || {})
@@ -92,13 +125,17 @@ module Eventure
         routing.is do
           session[:filters] = extract_filters(routing)
           @filtered_activities = fetched_filtered_activities(session[:filters])
+          @all_activities = @filtered_activities
           show_activities
         end
 
         # 新增：GET /activities/search?keyword=xxx
         routing.get 'search' do
           # 1) 直接把 keyword 以 Hash 傳給 service（Dry::Transaction 期望 Hash 輸入）
-          result = Eventure::Service::SearchedActivities.new.call(keyword: routing.params['keyword'])
+          result = Eventure::Service::SearchedActivities.new.call(
+            keyword: routing.params['keyword'],
+            language: @current_language
+          )
 
           # 2) form 或 service 任一失敗，都在這裡處理
           if result.failure?
@@ -116,6 +153,7 @@ module Eventure
                                      []
                                    end
 
+            @all_activities = @filtered_activities
             show_activities
           end
         end
@@ -123,8 +161,8 @@ module Eventure
         routing.post 'like' do
           response['Content-Type'] = 'application/json'
           serno = routing.params['serno'] || routing.params['serno[]']
-
-          result = Service::UpdateLikeCounts.new.call(serno: serno.to_i, user_likes: session[:user_likes])
+          serno = serno.to_s.strip
+          result = Service::UpdateLikeCounts.new.call(serno: serno, user_likes: session[:user_likes])
 
           if result.failure?
             response.status = 400
@@ -133,8 +171,9 @@ module Eventure
             result_value = result.value!
             session[:user_likes] = result_value.user_likes
             # check if this user curreently likes this activity
-            user_likes_this = session[:user_likes].map(&:to_i).include?(serno.to_i)
-            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes], is_liked: user_likes_this }.to_json
+            user_likes_this = session[:user_likes].map(&:to_s).include?(serno.to_s)
+            { serno: result_value.serno, likes_count: result_value.likes_count, user_likes: session[:user_likes],
+              is_liked: user_likes_this }.to_json
           end
         end
       end
@@ -165,18 +204,18 @@ module Eventure
         all_activities: @all_activities,
         current_filters: @current_filters,
         filter_options: @filter_options,
-        liked_sernos: Array(session[:user_likes]).map(&:to_i),
+        liked_sernos: Array(session[:user_likes]).map(&:to_s),
         total_pages: 1,
         current_page: 1
       }
     end
 
     def fetched_filtered_activities(filters)
-      result = Eventure::Service::FilteredActivities.new.call(filters: filters)
-      return [] if result.failure?
-
-      response_obj = result.value! # 這裡拿到 Response::ApiResult
-      response_obj.activities.map { |a| map_api_activity(a) }
+      filters_language = filters.merge(language: @current_language)
+      result = Eventure::Service::FilteredActivities.new.call(filters: filters_language)
+      response_obj = result.value!
+      activities = response_obj.activities
+      activities.map { |a| map_api_activity(a) }
     end
 
     # Map a raw activity (from API representer) to the view OpenStruct shape
@@ -193,24 +232,35 @@ module Eventure
         OpenStruct.new(tag: value)
       end
 
+      use_english = (@current_language == 'en')
+      
+      get_localized = lambda do |field_name|
+        if use_english
+          en_method = "#{field_name}_en".to_sym
+          en_value = a.respond_to?(en_method) ? a.send(en_method) : nil
+          return en_value if en_value && !en_value.to_s.strip.empty?
+        end
+        a.respond_to?(field_name) ? a.send(field_name) : nil
+      end
+
       OpenStruct.new(
         serno: a.respond_to?(:serno) ? a.serno : nil,
-        name: a.respond_to?(:name) ? a.name : nil,
+        name: get_localized.call(:name),
         location: a.respond_to?(:location) ? a.location : nil,
-        city: a.city,
-        district: a.district,
-        building: a.building,
-        detail: a.detail,
-        organizer: a.organizer,
-        voice: a.respond_to?(:voice) ? a.voice : nil, 
+        city: get_localized.call(:city),
+        district: get_localized.call(:district),
+        building: a.respond_to?(:building) ? a.building : nil,
+        detail: get_localized.call(:detail),
+        organizer: get_localized.call(:organizer),
+        voice: a.respond_to?(:voice) ? a.voice : nil,
         tags: tags,
         activity_date: OpenStruct.new(
-          start_time: (a.respond_to?(:start_time) ? a.start_time : nil),
-          end_time: a.end_time,
-          duration: a.duration,
-          status: (a.respond_to?(:status) ? a.status : nil)
+          start_time: a.respond_to?(:start_time) ? a.start_time : nil,
+          end_time: a.respond_to?(:end_time) ? a.end_time : nil,
+          duration: a.respond_to?(:duration) ? a.duration : nil,
+          status: a.respond_to?(:status) ? a.status : nil
         ),
-        likes_count: (a.respond_to?(:likes_count) ? a.likes_count : 0)
+        likes_count: a.respond_to?(:likes_count) ? a.likes_count : 0
       )
     end
   end
