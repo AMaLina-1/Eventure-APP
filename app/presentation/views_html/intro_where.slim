@@ -26,12 +26,12 @@
         | 台南
       a.position-absolute.btn.btn-sm.btn-primary style="top: 65%; left: 23%;" href="/intro_tag?filter_city=高雄市#{lang_param}"
         | 高雄
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 6%; left: 48%;" href="/intro_tag?filter_city=台北市#{lang_param}"
-        | 台北
+      / a.position-absolute.btn.btn-sm.btn-primary style="top: 6%; left: 48%;" href="/intro_tag?filter_city=台北市#{lang_param}"
+      /   | 台北
       a.position-absolute.btn.btn-sm.btn-primary style="top: 12%; left: 46%;" href="/intro_tag?filter_city=新北市#{lang_param}"
         | 新北
-      a.position-absolute.btn.btn-sm.btn-primary style="top: 9%; left: 38%;" href="/intro_tag?filter_city=桃園市#{lang_param}"
-        | 桃園
+      / a.position-absolute.btn.btn-sm.btn-primary style="top: 9%; left: 38%;" href="/intro_tag?filter_city=桃園市#{lang_param}"
+      /   | 桃園
 
 / === Progress Bar 固定在 footer 上方 ===
 .container
@@ -48,29 +48,37 @@
     var channel = "#{processing.ws_channel_id}";
     var client = new Faye.Client("#{processing.ws_route}");
     var bar = document.getElementsByClassName("progress-bar")[0];
-    var reg = /\:(\d+)%/
-    client.subscribe('/' + channel, function(message) {
-      // Collect progressbar element and percentage
-      var progress = bar.getAttribute("style")
-      var currentProgress = reg.exec(progress)[1]
-      
-      if (isNaN(message)) {
-        bar.setAttribute("style", "width:100%")
-        bar.setAttribute("class", "progress-bar bg-danger progress-bar-striped")
-        bar.innerHTML = message
-      } else {
-        if (parseInt(message) > parseInt(currentProgress)) {
-          // Set the progress bar and percentage
-          bar.setAttribute("aria-valuenow", message)
-          bar.setAttribute("style", "width:"+message+"%")
-          bar.innerHTML = message+"%"
 
-          // Reload page at 100%
-          if (message == "100") {
+    // 用變數存上一次進度值
+    var lastProgress = 0;
+
+    client.subscribe('/' + channel, function(message) {
+      var progressValue;
+
+      if (isNaN(message)) {
+        // 如果收到非數值訊息 → 直接顯示錯誤
+        bar.setAttribute("style", "width:100%");
+        bar.setAttribute("class", "progress-bar bg-danger progress-bar-striped");
+        bar.innerHTML = message;
+        lastProgress = 100; // 記錄為完成
+      } else {
+        progressValue = parseInt(message);
+
+        if (progressValue > lastProgress) {
+          // 更新 progress bar
+          bar.setAttribute("aria-valuenow", progressValue);
+          bar.setAttribute("style", "width:" + progressValue + "%");
+          bar.innerHTML = progressValue + "%";
+
+          // 完成時處理
+          if (progressValue === 100) {
             bar.classList.remove("progress-bar-animated");
             bar.classList.remove("progress-bar-striped");
             bar.innerHTML = "100%";
           }
+
+          // 更新 lastProgress
+          lastProgress = progressValue;
         }
       }
     });
