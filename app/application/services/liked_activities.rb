@@ -22,7 +22,7 @@ module Eventure
 
       def request_activity(input)
         result = Gateway::Api.new(Eventure::App.config)
-          .like_activity(input)
+                             .like_activity(input)
 
         result.success? ? Success(result.payload) : Failure(result.message)
       rescue StandardError => e
@@ -33,8 +33,8 @@ module Eventure
 
       def reify_activity(activity_json)
         Representer::ActivityList.new(OpenStruct.new)
-          .from_json(activity_json)
-          .then { |activity| Success(activity) }
+                                 .from_json(activity_json)
+                                 .then { |activity| Success(activity) }
       rescue StandardError
         Failure('Error in the filtered activities -- please try again')
       end

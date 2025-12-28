@@ -93,7 +93,6 @@ module Views
       @activity.activity_date.duration
     end
 
-    # now = DateTime.now 可能有問題
     def status
       @activity.activity_date.status
     end
