@@ -13,7 +13,6 @@ module Eventure
 
       def request_activity
         result = Gateway::Api.new(Eventure::App.config).fetch_api_activities
-        # puts result  # {"status":"processing","message":{"request_id":-1897440702705942571,"msg":"Processing the fetching request..."}}
         result.success? ? Success(result) : Failure(result.message)
       rescue StandardError => e
         puts e.inspect
@@ -22,9 +21,6 @@ module Eventure
       end
 
       def reify_progress(input)
-        # input[:status] = input.status
-        # input[:request_id] = input.message['request_id']
-        # input[:msg] = input.message['msg']
         Success(input)
       rescue StandardError
         Failure('Error in the fetching API activities -- please try again')

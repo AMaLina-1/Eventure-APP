@@ -9,7 +9,6 @@ module Views
     end
 
     def in_progress?
-      # @response.processing?
       @response.status == 'processing'
     end
 
@@ -18,11 +17,11 @@ module Views
     end
 
     def ws_javascript
-      @config.API_HOST + '/faye/faye.js' if in_progress?
+      "#{@config.API_HOST}/faye/faye.js" if in_progress?
     end
 
     def ws_route
-      @config.API_HOST + '/faye/faye' if in_progress?
+      "#{@config.API_HOST}/faye/faye" if in_progress?
     end
   end
 end

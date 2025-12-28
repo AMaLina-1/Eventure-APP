@@ -13,9 +13,7 @@ module Eventure
       end
 
       rule(:keyword) do
-        if value && !VALID_CHAR.match?(value)
-          key.failure('Keywords cannot contain special characters')
-        end
+        key.failure('Keywords cannot contain special characters') if value && !VALID_CHAR.match?(value)
       end
     end
   end

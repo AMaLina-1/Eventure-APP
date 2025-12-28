@@ -25,7 +25,7 @@ module Eventure
       def request_like(input)
         sent_hash = { serno: input[:serno], user_likes: input[:user_likes] }
         result = Gateway::Api.new(Eventure::App.config)
-          .like_activity(sent_hash)
+                             .like_activity(sent_hash)
         puts 'result: ', result
 
         result.success? ? Success(result.payload) : Failure(result.message)
@@ -37,7 +37,7 @@ module Eventure
 
       def reify_like(liked_json)
         like_info = Representer::ActivityLike.new(OpenStruct.new)
-          .from_json(liked_json)
+                                             .from_json(liked_json)
         Success(like_info)
       rescue StandardError
         Failure('Error in liked/disliked activity -- please try again')

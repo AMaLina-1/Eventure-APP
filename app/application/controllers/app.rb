@@ -12,6 +12,7 @@ require_relative '../services/searched_activities'
 require_relative '../forms/keyword_input'
 
 module Eventure
+  # Application controller
   class App < Roda
     plugin :flash
     plugin :render, engine: 'slim', views: 'app/presentation/views_html'
@@ -24,7 +25,6 @@ module Eventure
     route do |routing|
       response['Content-Type'] = 'text/html; charset=utf-8'
 
-      # response.cache_control public: true, max_age: 300 if App.environment == :production
       response['Vary'] = 'Accept-Language, Cookie'
       response.cache_control private: true, max_age: 300 if App.environment == :production
 
@@ -44,7 +44,7 @@ module Eventure
       end
       @current_language = session[:language]
 
-      # ================== Routes ==================      
+      # ================== Routes ==================
       routing.get 'clear_session' do
         session.clear
         puts 'session cleared'
@@ -56,23 +56,12 @@ module Eventure
           response.expires 300, private: true
         end
 
-        # view 'intro_where'
-
         response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
 
-        puts "Fetching activities from API..."
+        puts 'Fetching activities from API...'
         result = Eventure::Service::ApiActivities.new.call
-        # print(result.value!.status)
 
-        # print(result.value!['status'])
-        
         processing = Views::FetchingProcessing.new(App.config, result.value!)
-        
-        # print("subscribing to", `/progress/${processing.ws_channel_id}`);
-        # puts (processing.in_progress?)
-        # puts(processing.ws_channel_id)
-        # puts(processing.ws_route)
-        # puts(processing.ws_javascript)
 
         view '/intro_where', locals: { processing: processing }
       end
@@ -87,7 +76,7 @@ module Eventure
       routing.get 'intro_tag' do
         @all_activities = fetched_filtered_activities(session[:filters])
         puts "Total activities fetched: #{@all_activities.length}"
-      
+
         # 先把這次帶進來的條件轉成乾淨 hash（包含 filter_city）
         filters = extract_filters(routing) # => { tag: [...], city: '新竹市', ... }
 
@@ -95,11 +84,8 @@ module Eventure
         session[:filters] = filters
 
         # 依照剛更新的 filters 重新請求活動，確保 options 是基於目前選取的縣市
-        puts 'second fetching filtered activities...'
         activities_for_options = fetched_filtered_activities(filters)
-        # @all_activities = activities_for_options
         @filtered_activities = activities_for_options
-        puts "Filtered activities count: #{@filtered_activities.length}"
 
         @current_filters = Views::Filter.new(filters || {})
         @filter_options  = Views::FilterOption.new(activities_for_options)
@@ -233,7 +219,7 @@ module Eventure
       end
 
       use_english = (@current_language == 'en')
-      
+
       get_localized = lambda do |field_name|
         if use_english
           en_method = "#{field_name}_en".to_sym
